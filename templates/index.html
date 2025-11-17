@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Recognition System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 40px;
+        }
+
+        .section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+        }
+
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 1em;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+            margin-top: 10px;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-small {
+            padding: 8px 15px;
+            font-size: 0.9em;
+            width: auto;
+            margin-top: 10px;
+        }
+
+        .status-message {
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .status-message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+
+        .status-message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+
+        .status-message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            display: block;
+        }
+
+        .preview-area {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .preview-area img,
+        .preview-area video {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        .webcam-container {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        #webcamStream {
+            max-width: 100%;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        .results-container {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+        }
+
+        .results-container h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .recognized-face {
+            background: #e7f3ff;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 5px;
+            border-left: 4px solid #0066cc;
+        }
+
+        .recognized-face .name {
+            font-weight: bold;
+            color: #0066cc;
+        }
+
+        .recognized-face .confidence {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .info-section {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            border-left: 4px solid #28a745;
+        }
+
+        .info-section h4 {
+            color: #28a745;
+            margin-bottom: 10px;
+        }
+
+        .info-section ul {
+            list-style-position: inside;
+            color: #666;
+        }
+
+        .info-section ul li {
+            margin-bottom: 8px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 10px 0;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .known-faces-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .face-badge {
+            background: #667eea;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .section {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Face Recognition System</h1>
+            <p>Powered by YOLOv11 and Face Recognition</p>
+        </div>
+
+        <div class="main-content">
+            
+            <div class="section">
+                <h2>➕ Add Known Face</h2>
+                <div class="form-group">
+                    <label for="faceNameInput">Person's Name:</label>
+                    <input type="text" id="faceNameInput" placeholder="Enter the person's name">
+                </div>
+                <div class="form-group">
+                    <label for="faceImageInput">Select Image:</label>
+                    <input type="file" id="faceImageInput" accept="image/*">
+                </div>
+                <div class="preview-area" id="addFacePreview"></div>
+                <button class="btn btn-primary" onclick="addKnownFace()">Add Face to Database</button>
+                <div id="addFaceStatus" class="status-message"></div>
+                <div class="spinner" id="addFaceSpinner"></div>
+            </div>
+
+            
+            <div class="section">
+                <h2>🖼️ Recognize Image</h2>
+                <div class="form-group">
+                    <label for="recognizeImageInput">Select Image:</label>
+                    <input type="file" id="recognizeImageInput" accept="image/*">
+                </div>
+                <div class="preview-area" id="recognizeImagePreview"></div>
+                <button class="btn btn-primary" onclick="recognizeImage()">Recognize Faces</button>
+                <div id="imageStatus" class="status-message"></div>
+                <div class="spinner" id="imageSpinner"></div>
+                <div id="imageResults"></div>
+            </div>
+
+            
+            <div class="section">
+                <h2>🎬 Recognize Video</h2>
+                <div class="form-group">
+                    <label for="recognizeVideoInput">Select Video:</label>
+                    <input type="file" id="recognizeVideoInput" accept="video/*">
+                </div>
+                <button class="btn btn-primary" onclick="recognizeVideo()">Recognize Faces in Video</button>
+                <div id="videoStatus" class="status-message"></div>
+                <div class="spinner" id="videoSpinner"></div>
+                <div id="videoResults"></div>
+            </div>
+
+            
+            <div class="section">
+                <h2>📹 Webcam Recognition</h2>
+                <div class="webcam-container">
+                    <img id="webcamStream" style="display: none; max-width: 100%; border-radius: 5px;">
+                    <div id="cameraStatus" class="status-message info" style="display: none;">
+                        Initializing camera...
+                    </div>
+                </div>
+                <button class="btn btn-primary" id="webcamBtn" onclick="startWebcam()">Start Webcam</button>
+                <button class="btn btn-danger" id="stopWebcamBtn" onclick="stopWebcam()" style="display: none;">Stop Webcam</button>
+            </div>
+
+            
+            <div class="section">
+                <h2>👥 Known Faces</h2>
+                <button class="btn btn-secondary btn-small" onclick="loadKnownFaces()">Refresh List</button>
+                <div id="knownFacesList" class="known-faces-list">
+                    <p style="color: #999;">No faces loaded yet. Add a face to get started!</p>
+                </div>
+                <button class="btn btn-danger btn-small" onclick="clearDatabase()">Clear All Faces</button>
+                <div id="dbStatus" class="status-message"></div>
+            </div>
+
+            
+            <div class="section">
+                <h2>⚙️ System Status</h2>
+                <button class="btn btn-secondary btn-small" onclick="checkHealth()">Check Status</button>
+                <div id="healthStatus" style="margin-top: 15px; padding: 15px; background: white; border-radius: 5px; border-left: 4px solid #667eea;">
+                    <p id="healthText">Click 'Check Status' to get system information</p>
+                </div>
+            </div>
+
+            
+            <div class="section full-width">
+                <h2>ℹ️ How to Use</h2>
+                <div class="info-section">
+                    <h4>🚀 Quick Start:</h4>
+                    <ul>
+                        <li><strong>Add Known Faces:</strong> Upload a clear photo of a person and give them a name. The system will learn their face.</li>
+                        <li><strong>Recognize Image:</strong> Upload an image and the system will detect and identify all faces.</li>
+                        <li><strong>Recognize Video:</strong> Upload a video file to analyze and find recognized faces throughout.</li>
+                        <li><strong>Live Webcam:</strong> Start your webcam for real-time face detection and recognition.</li>
+                    </ul>
+                </div>
+                <div class="info-section">
+                    <h4>💡 Tips:</h4>
+                    <ul>
+                        <li>Add multiple photos of the same person for better recognition accuracy.</li>
+                        <li>Ensure good lighting when adding faces to the database.</li>
+                        <li>The system works best with clear, frontal face images.</li>
+                        <li>Processing quality improves with more diverse training images.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // File input preview handlers
+        document.getElementById('faceImageInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    document.getElementById('addFacePreview').innerHTML = 
+                        `<img src="${event.target.result}" alt="Preview">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        document.getElementById('recognizeImageInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    document.getElementById('recognizeImagePreview').innerHTML = 
+                        `<img src="${event.target.result}" alt="Preview">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Add Known Face
+        async function addKnownFace() {
+            const name = document.getElementById('faceNameInput').value.trim();
+            const file = document.getElementById('faceImageInput').files[0];
+            const statusDiv = document.getElementById('addFaceStatus');
+            const spinner = document.getElementById('addFaceSpinner');
+
+            if (!name) {
+                showStatus(statusDiv, 'Please enter a name', 'error');
+                return;
+            }
+
+            if (!file) {
+                showStatus(statusDiv, 'Please select an image', 'error');
+                return;
+            }
+
+            spinner.style.display = 'block';
+            const formData = new FormData();
+            formData.append('name', name);
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/add-known-face', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showStatus(statusDiv, data.message, 'success');
+                    document.getElementById('faceNameInput').value = '';
+                    document.getElementById('faceImageInput').value = '';
+                    document.getElementById('addFacePreview').innerHTML = '';
+                    await loadKnownFaces();
+                } else {
+                    showStatus(statusDiv, data.detail || 'Error adding face', 'error');
+                }
+            } catch (error) {
+                showStatus(statusDiv, 'Error: ' + error.message, 'error');
+            } finally {
+                spinner.style.display = 'none';
+            }
+        }
+
+        // Recognize Image
+        async function recognizeImage() {
+            const file = document.getElementById('recognizeImageInput').files[0];
+            const statusDiv = document.getElementById('imageStatus');
+            const spinner = document.getElementById('imageSpinner');
+            const resultsDiv = document.getElementById('imageResults');
+
+            if (!file) {
+                showStatus(statusDiv, 'Please select an image', 'error');
+                return;
+            }
+
+            spinner.style.display = 'block';
+            resultsDiv.innerHTML = '';
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/recognize-image', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showStatus(statusDiv, `Found ${data.data.total_faces} face(s)`, 'success');
+                    displayImageResults(data, resultsDiv);
+                } else {
+                    showStatus(statusDiv, data.detail || 'Error recognizing image', 'error');
+                }
+            } catch (error) {
+                showStatus(statusDiv, 'Error: ' + error.message, 'error');
+            } finally {
+                spinner.style.display = 'none';
+            }
+        }
+
+        // Recognize Video
+        async function recognizeVideo() {
+            const file = document.getElementById('recognizeVideoInput').files[0];
+            const statusDiv = document.getElementById('videoStatus');
+            const spinner = document.getElementById('videoSpinner');
+            const resultsDiv = document.getElementById('videoResults');
+
+            if (!file) {
+                showStatus(statusDiv, 'Please select a video', 'error');
+                return;
+            }
+
+            spinner.style.display = 'block';
+            resultsDiv.innerHTML = '';
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/recognize-video', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showStatus(statusDiv, `Processed ${data.total_frames} frames`, 'success');
+                    displayVideoResults(data, resultsDiv);
+                } else {
+                    showStatus(statusDiv, data.detail || 'Error recognizing video', 'error');
+                }
+            } catch (error) {
+                showStatus(statusDiv, 'Error: ' + error.message, 'error');
+            } finally {
+                spinner.style.display = 'none';
+            }
+        }
+
+        // Webcam Stream
+        let webcamStreaming = false;
+
+        async function startWebcam() {
+            const stream = document.getElementById('webcamStream');
+            const cameraStatus = document.getElementById('cameraStatus');
+            const webcamBtn = document.getElementById('webcamBtn');
+            const stopBtn = document.getElementById('stopWebcamBtn');
+
+            webcamBtn.style.display = 'none';
+            stopBtn.style.display = 'block';
+            cameraStatus.style.display = 'block';
+
+            try {
+                stream.src = '/api/webcam-stream';
+                stream.style.display = 'block';
+                webcamStreaming = true;
+            } catch (error) {
+                cameraStatus.className = 'status-message error';
+                cameraStatus.textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function stopWebcam() {
+            const stream = document.getElementById('webcamStream');
+            const cameraStatus = document.getElementById('cameraStatus');
+            const webcamBtn = document.getElementById('webcamBtn');
+            const stopBtn = document.getElementById('stopWebcamBtn');
+
+            try {
+                await fetch('/api/stop-webcam', { method: 'POST' });
+                stream.src = '';
+                stream.style.display = 'none';
+                cameraStatus.style.display = 'none';
+                webcamStreaming = false;
+                webcamBtn.style.display = 'block';
+                stopBtn.style.display = 'none';
+            } catch (error) {
+                console.error('Error stopping webcam:', error);
+            }
+        }
+
+        // Load Known Faces
+        async function loadKnownFaces() {
+            try {
+                const response = await fetch('/api/known-faces');
+                const data = await response.json();
+                const list = document.getElementById('knownFacesList');
+
+                if (data.count === 0) {
+                    list.innerHTML = '<p style="color: #999;">No faces in database. Add a face to get started!</p>';
+                } else {
+                    list.innerHTML = data.known_faces
+                        .map(name => `<div class="face-badge">${name}</div>`)
+                        .join('');
+                }
+            } catch (error) {
+                console.error('Error loading known faces:', error);
+            }
+        }
+
+        // Clear Database
+        async function clearDatabase() {
+            if (confirm('Are you sure you want to delete all known faces? This cannot be undone!')) {
+                try {
+                    const response = await fetch('/api/clear-database', { method: 'POST' });
+                    const data = await response.json();
+                    showStatus(document.getElementById('dbStatus'), data.message, 'success');
+                    await loadKnownFaces();
+                } catch (error) {
+                    showStatus(document.getElementById('dbStatus'), 'Error: ' + error.message, 'error');
+                }
+            }
+        }
+
+        // Health Check
+        async function checkHealth() {
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+                const healthText = document.getElementById('healthText');
+                healthText.innerHTML = `
+                    <strong>Status:</strong> ${data.status} ✓<br>
+                    <strong>Model:</strong> ${data.model}<br>
+                    <strong>Known Faces:</strong> ${data.known_faces}<br>
+                    <strong>Database:</strong> ${data.database_loaded ? '✓ Loaded' : '✗ Empty'}
+                `;
+            } catch (error) {
+                document.getElementById('healthText').textContent = 'Error: ' + error.message;
+            }
+        }
+
+        // Helper Functions
+        function showStatus(element, message, type) {
+            element.textContent = message;
+            element.className = `status-message ${type}`;
+        }
+
+        function displayImageResults(data, container) {
+            const html = `
+                <div class="results-container">
+                    <h3>Results</h3>
+                    <p><strong>Total Faces Detected:</strong> ${data.data.total_faces}</p>
+                    <div>
+                        ${data.data.recognized_faces.map(face => `
+                            <div class="recognized-face">
+                                <span class="name">${face.name}</span>
+                                <span class="confidence">(${(face.confidence * 100).toFixed(1)}% confidence)</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <h4 style="margin-top: 15px; color: #667eea;">Annotated Image:</h4>
+                    <img src="${data.image}" style="max-width: 100%; border-radius: 5px; margin-top: 10px;">
+                </div>
+            `;
+            container.innerHTML = html;
+        }
+
+        function displayVideoResults(data, container) {
+            const html = `
+                <div class="results-container">
+                    <h3>Video Analysis Results</h3>
+                    <p><strong>Total Frames:</strong> ${data.total_frames}</p>
+                    <p><strong>Total Recognized Faces:</strong> ${data.total_recognized}</p>
+                    <h4 style="margin-top: 15px; color: #667eea;">Recognized People:</h4>
+                    ${Object.keys(data.recognized_faces).length === 0 ? 
+                        '<p style="color: #999;">No recognized faces found in video</p>' :
+                        Object.entries(data.recognized_faces).map(([name, count]) => `
+                            <div class="recognized-face">
+                                <span class="name">${name}</span>
+                                <span class="confidence">${count} detection${count !== 1 ? 's' : ''}</span>
+                            </div>
+                        `).join('')
+                    }
+                    <h4 style="margin-top: 15px; color: #667eea;">Annotated Video:</h4>
+                    <video width="100%" controls style="border-radius: 5px; margin-top: 10px;">
+                        <source src="${data.video_url}" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+            `;
+            container.innerHTML = html;
+        }
+
+        // Load known faces on page load
+        window.addEventListener('load', () => {
+            loadKnownFaces();
+            checkHealth();
+        });
+    </script>
+</body>
+</html>
