@@ -29,7 +29,7 @@ body {
 
 .header h1 {
     font-size: 2.5em;
-    margin-bottom: 10px;
+    margin-bottom: 14px;
 }
 
 .header p {
@@ -40,8 +40,8 @@ body {
 .main-content {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 30px;
-    padding: 40px;
+    gap: 35px;
+    padding: 45px;
 }
 
 .section {
@@ -148,16 +148,16 @@ body {
 }
 
 .status-message.success {
-    background: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
+    background: #ffffff;
+    color: #04701d;
+    border: 1px solid #023e10;
     display: block;
 }
 
 .status-message.error {
-    background: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
+    background: #ffffff;
+    color: #550910;
+    border: 1px solid #f5dcdf;
     display: block;
 }
 
@@ -182,20 +182,20 @@ body {
 }
 
 .webcam-container {
-    margin-top: 20px;
+    margin-top: 25px;
     text-align: center;
 }
 
 #webcamStream {
     max-width: 100%;
-    border-radius: 5px;
+    border-radius: 7px;
     margin-top: 10px;
 }
 
 .results-container {
     margin-top: 20px;
     padding: 15px;
-    background: white;
+    background: #ffffff;
     border-radius: 5px;
     border-left: 4px solid #667eea;
 }
@@ -223,7 +223,7 @@ body {
     color: #666;
 }
 
-.info-section {
+.infoSection {
     background: white;
     padding: 15px;
     border-radius: 5px;
@@ -231,17 +231,17 @@ body {
     border-left: 4px solid #28a745;
 }
 
-.info-section h4 {
+.infoSection h4 {
     color: #28a745;
     margin-bottom: 10px;
 }
 
-.info-section ul {
+.infoSection ul {
     list-style-position: inside;
     color: #666;
 }
 
-.info-section ul li {
+.infoSection ul li {
     margin-bottom: 8px;
 }
 
