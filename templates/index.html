@@ -62,7 +62,8 @@
             <div class="section">
                 <h2>📹 Webcam Recognition</h2>
                 <div class="webcam-container">
-                    <img id="webcamStream" class="hidden max-full rounded">
+                    <img id="webcamStream" class="hidden max-full rounded" alt="Server webcam stream">
+                    <p class="muted small">This stream is from the server camera (not your local device). If you expect to use your browser camera, the app needs a client-side implementation using getUserMedia.</p>
                     <div id="cameraStatus" class="status-message info hidden">
                         Initializing camera...
                     </div>
@@ -273,17 +274,52 @@
             const webcamBtn = document.getElementById('webcamBtn');
             const stopBtn = document.getElementById('stopWebcamBtn');
 
-            webcamBtn.style.display = 'none';
-            stopBtn.style.display = 'block';
-            cameraStatus.style.display = 'block';
+            // Toggle classes instead of inline styles so the `.hidden` CSS rule with !important works properly
+            webcamBtn.classList.add('hidden');
+            stopBtn.classList.remove('hidden');
+            stream.classList.remove('hidden');
+            cameraStatus.classList.remove('hidden');
+            cameraStatus.classList.remove('error');
+            cameraStatus.classList.add('info');
+            cameraStatus.textContent = 'Initializing camera...';
+
+            // Attach error and load handlers
+            stream.onerror = () => {
+                cameraStatus.classList.remove('info');
+                cameraStatus.classList.add('error');
+                cameraStatus.textContent = 'Failed to start webcam. The server camera might be unavailable.';
+                // Restore UI
+                stream.classList.add('hidden');
+                webcamBtn.classList.remove('hidden');
+                stopBtn.classList.add('hidden');
+                webcamStreaming = false;
+            };
+            stream.onload = () => {
+                cameraStatus.classList.remove('info');
+                cameraStatus.classList.add('success');
+                cameraStatus.textContent = 'Webcam streaming.';
+            };
 
             try {
+                // Check availability first to provide friendlier error feedback
+                const statusResp = await fetch('/api/webcam-status');
+                if (statusResp.ok) {
+                    const statusData = await statusResp.json();
+                    if (!statusData.available) {
+                        throw new Error('Server camera is not available');
+                    }
+                }
+
                 stream.src = '/api/webcam-stream';
-                stream.style.display = 'block';
                 webcamStreaming = true;
             } catch (error) {
                 cameraStatus.className = 'status-message error';
                 cameraStatus.textContent = 'Error: ' + error.message;
+                // Restore UI
+                stream.classList.add('hidden');
+                webcamBtn.classList.remove('hidden');
+                stopBtn.classList.add('hidden');
+                webcamStreaming = false;
             }
         }
 
@@ -296,11 +332,13 @@
             try {
                 await fetch('/api/stop-webcam', { method: 'POST' });
                 stream.src = '';
-                stream.style.display = 'none';
-                cameraStatus.style.display = 'none';
+                stream.onerror = null;
+                stream.onload = null;
+                stream.classList.add('hidden');
+                cameraStatus.classList.add('hidden');
                 webcamStreaming = false;
-                webcamBtn.style.display = 'block';
-                stopBtn.style.display = 'none';
+                webcamBtn.classList.remove('hidden');
+                stopBtn.classList.add('hidden');
             } catch (error) {
                 console.error('Error stopping webcam:', error);
             }

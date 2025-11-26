@@ -267,46 +267,52 @@ async def recognize_video(file: UploadFile = File(...)):
 
 @app.get("/api/webcam-stream")
 async def webcam_stream():
+    """
+    Stream MJPEG frames from the server's camera.
+    If the camera cannot be opened we return a 503 so clients can handle it.
+    The generator checks `webcam_active` to stop streaming when `/api/stop-webcam` is called.
+    """
+    cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        print("[webcam_stream] Camera not available (index 0)")
+        raise HTTPException(status_code=503, detail="Camera not available on server")
+
     async def generate():
         global webcam_active
-        
-        cap = cv2.VideoCapture(0)
-        if not cap.isOpened():
-            yield b'error: Camera not available'
-            return
-        
+
         async with webcam_lock:
             webcam_active = True
-        
+
         try:
             frame_count = 0
-            while True:
+            while webcam_active:
                 ret, frame = cap.read()
                 if not ret:
+                    print("[webcam_stream] No frame received from camera")
                     break
-                
+
                 frame = cv2.resize(frame, (640, 480))
-                
+
                 if frame_count % 2 == 0:
                     results = recognizer.detect_and_recognize_faces(frame)
                     frame = recognizer.draw_results(frame, results)
-                
+
                 _, buffer = cv2.imencode('.jpg', frame)
                 frame_bytes = buffer.tobytes()
-                
+
                 yield (b'--frame\r\n'
                        b'Content-Type: image/jpeg\r\n'
                        b'Content-Length: ' + str(len(frame_bytes)).encode() + b'\r\n\r\n'
                        + frame_bytes + b'\r\n')
-                
+
                 frame_count += 1
-                
+
                 await asyncio.sleep(0.01)
         finally:
             cap.release()
             async with webcam_lock:
                 webcam_active = False
-    
+
     return StreamingResponse(
         generate(),
         media_type="multipart/x-mixed-replace; boundary=frame"
@@ -318,6 +324,22 @@ async def stop_webcam():
     async with webcam_lock:
         webcam_active = False
     return {"status": "success"}
+
+
+@app.get("/api/webcam-status")
+async def webcam_status():
+    """Quick non-streaming check to see whether the camera can be opened on the server.
+    Useful for the client to validate availability before trying to stream.
+    """
+    try:
+        cap = cv2.VideoCapture(0)
+        available = cap.isOpened()
+        if available:
+            cap.release()
+        return {"available": available}
+    except Exception as e:
+        print(f"[webcam_status] Error checking camera: {e}")
+        return {"available": False}
 
 
 @app.get("/api/known-faces")
