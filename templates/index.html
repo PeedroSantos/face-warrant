@@ -4,303 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Face Recognition System</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-            overflow: hidden;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-        }
-
-        .header p {
-            font-size: 1.1em;
-            opacity: 0.9;
-        }
-
-        .main-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            padding: 40px;
-        }
-
-        .section {
-            background: #f8f9fa;
-            padding: 25px;
-            border-radius: 10px;
-            border: 2px solid #e9ecef;
-        }
-
-        .section h2 {
-            color: #667eea;
-            margin-bottom: 20px;
-            font-size: 1.8em;
-            border-bottom: 3px solid #667eea;
-            padding-bottom: 10px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 600;
-            font-size: 1em;
-        }
-
-        .form-group input,
-        .form-group textarea {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            font-size: 1em;
-            transition: border-color 0.3s;
-        }
-
-        .form-group input:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
-        }
-
-        .btn {
-            padding: 12px 25px;
-            border: none;
-            border-radius: 5px;
-            font-size: 1em;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            width: 100%;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-primary:active {
-            transform: translateY(0);
-        }
-
-        .btn-danger {
-            background: #dc3545;
-            color: white;
-            margin-top: 10px;
-        }
-
-        .btn-danger:hover {
-            background: #c82333;
-            transform: translateY(-2px);
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #5a6268;
-        }
-
-        .btn-small {
-            padding: 8px 15px;
-            font-size: 0.9em;
-            width: auto;
-            margin-top: 10px;
-        }
-
-        .status-message {
-            padding: 15px;
-            border-radius: 5px;
-            margin-top: 15px;
-            display: none;
-        }
-
-        .status-message.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-            display: block;
-        }
-
-        .status-message.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-            display: block;
-        }
-
-        .status-message.info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-            display: block;
-        }
-
-        .preview-area {
-            margin-top: 20px;
-            text-align: center;
-        }
-
-        .preview-area img,
-        .preview-area video {
-            max-width: 100%;
-            max-height: 300px;
-            border-radius: 5px;
-            margin-top: 10px;
-        }
-
-        .webcam-container {
-            margin-top: 20px;
-            text-align: center;
-        }
-
-        #webcamStream {
-            max-width: 100%;
-            border-radius: 5px;
-            margin-top: 10px;
-        }
-
-        .results-container {
-            margin-top: 20px;
-            padding: 15px;
-            background: white;
-            border-radius: 5px;
-            border-left: 4px solid #667eea;
-        }
-
-        .results-container h3 {
-            color: #667eea;
-            margin-bottom: 10px;
-        }
-
-        .recognized-face {
-            background: #e7f3ff;
-            padding: 10px;
-            margin: 8px 0;
-            border-radius: 5px;
-            border-left: 4px solid #0066cc;
-        }
-
-        .recognized-face .name {
-            font-weight: bold;
-            color: #0066cc;
-        }
-
-        .recognized-face .confidence {
-            font-size: 0.9em;
-            color: #666;
-        }
-
-        .info-section {
-            background: white;
-            padding: 15px;
-            border-radius: 5px;
-            margin-top: 20px;
-            border-left: 4px solid #28a745;
-        }
-
-        .info-section h4 {
-            color: #28a745;
-            margin-bottom: 10px;
-        }
-
-        .info-section ul {
-            list-style-position: inside;
-            color: #666;
-        }
-
-        .info-section ul li {
-            margin-bottom: 8px;
-        }
-
-        .full-width {
-            grid-column: 1 / -1;
-        }
-
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 10px 0;
-            display: none;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .known-faces-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .face-badge {
-            background: #667eea;
-            color: white;
-            padding: 8px 12px;
-            border-radius: 20px;
-            font-size: 0.9em;
-        }
-
-        @media (max-width: 768px) {
-            .main-content {
-                grid-template-columns: 1fr;
-            }
-
-            .header h1 {
-                font-size: 1.8em;
-            }
-
-            .section {
-                padding: 15px;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="/static/css/styles.css">
 </head>
 <body>
     <div class="container">
@@ -358,13 +62,13 @@
             <div class="section">
                 <h2>📹 Webcam Recognition</h2>
                 <div class="webcam-container">
-                    <img id="webcamStream" style="display: none; max-width: 100%; border-radius: 5px;">
-                    <div id="cameraStatus" class="status-message info" style="display: none;">
+                    <img id="webcamStream" class="hidden max-full rounded">
+                    <div id="cameraStatus" class="status-message info hidden">
                         Initializing camera...
                     </div>
                 </div>
                 <button class="btn btn-primary" id="webcamBtn" onclick="startWebcam()">Start Webcam</button>
-                <button class="btn btn-danger" id="stopWebcamBtn" onclick="stopWebcam()" style="display: none;">Stop Webcam</button>
+                <button class="btn btn-danger hidden" id="stopWebcamBtn" onclick="stopWebcam()">Stop Webcam</button>
             </div>
 
             
@@ -372,7 +76,7 @@
                 <h2>👥 Known Faces</h2>
                 <button class="btn btn-secondary btn-small" onclick="loadKnownFaces()">Refresh List</button>
                 <div id="knownFacesList" class="known-faces-list">
-                    <p style="color: #999;">No faces loaded yet. Add a face to get started!</p>
+                    <p class="muted">No faces loaded yet. Add a face to get started!</p>
                 </div>
                 <button class="btn btn-danger btn-small" onclick="clearDatabase()">Clear All Faces</button>
                 <div id="dbStatus" class="status-message"></div>
@@ -382,7 +86,7 @@
             <div class="section">
                 <h2>⚙️ System Status</h2>
                 <button class="btn btn-secondary btn-small" onclick="checkHealth()">Check Status</button>
-                <div id="healthStatus" style="margin-top: 15px; padding: 15px; background: white; border-radius: 5px; border-left: 4px solid #667eea;">
+                <div id="healthStatus" class="health-box">
                     <p id="healthText">Click 'Check Status' to get system information</p>
                 </div>
             </div>
@@ -414,13 +118,13 @@
 
     <script>
         // File input preview handlers
-        document.getElementById('faceImageInput').addEventListener('change', function(e) {
+    document.getElementById('faceImageInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(event) {
                     document.getElementById('addFacePreview').innerHTML = 
-                        `<img src="${event.target.result}" alt="Preview">`;
+                        `<img class="max-full rounded" src="${event.target.result}" alt="Preview">`;
                 };
                 reader.readAsDataURL(file);
             }
@@ -432,7 +136,7 @@
                 const reader = new FileReader();
                 reader.onload = function(event) {
                     document.getElementById('recognizeImagePreview').innerHTML = 
-                        `<img src="${event.target.result}" alt="Preview">`;
+                        `<img class="max-full rounded" src="${event.target.result}" alt="Preview">`;
                 };
                 reader.readAsDataURL(file);
             }
@@ -610,7 +314,7 @@
                 const list = document.getElementById('knownFacesList');
 
                 if (data.count === 0) {
-                    list.innerHTML = '<p style="color: #999;">No faces in database. Add a face to get started!</p>';
+                    list.innerHTML = '<p class="muted">No faces in database. Add a face to get started!</p>';
                 } else {
                     list.innerHTML = data.known_faces
                         .map(name => `<div class="face-badge">${name}</div>`)
@@ -659,7 +363,7 @@
         }
 
         function displayImageResults(data, container) {
-            const html = `
+                const html = `
                 <div class="results-container">
                     <h3>Results</h3>
                     <p><strong>Total Faces Detected:</strong> ${data.data.total_faces}</p>
@@ -671,22 +375,22 @@
                             </div>
                         `).join('')}
                     </div>
-                    <h4 style="margin-top: 15px; color: #667eea;">Annotated Image:</h4>
-                    <img src="${data.image}" style="max-width: 100%; border-radius: 5px; margin-top: 10px;">
+                    <h4 class="section-title">Annotated Image:</h4>
+                    <img class="max-full rounded mt-10" src="${data.image}">
                 </div>
             `;
             container.innerHTML = html;
         }
 
         function displayVideoResults(data, container) {
-            const html = `
+                const html = `
                 <div class="results-container">
                     <h3>Video Analysis Results</h3>
                     <p><strong>Total Frames:</strong> ${data.total_frames}</p>
                     <p><strong>Total Recognized Faces:</strong> ${data.total_recognized}</p>
-                    <h4 style="margin-top: 15px; color: #667eea;">Recognized People:</h4>
+                    <h4 class="section-title">Recognized People:</h4>
                     ${Object.keys(data.recognized_faces).length === 0 ? 
-                        '<p style="color: #999;">No recognized faces found in video</p>' :
+                        '<p class="muted">No recognized faces found in video</p>' :
                         Object.entries(data.recognized_faces).map(([name, count]) => `
                             <div class="recognized-face">
                                 <span class="name">${name}</span>
@@ -694,8 +398,8 @@
                             </div>
                         `).join('')
                     }
-                    <h4 style="margin-top: 15px; color: #667eea;">Annotated Video:</h4>
-                    <video width="100%" controls style="border-radius: 5px; margin-top: 10px;">
+                    <h4 class="section-title">Annotated Video:</h4>
+                    <video width="100%" controls class="rounded mt-10">
                         <source src="${data.video_url}" type="video/mp4">
                         Your browser does not support the video tag.
                     </video>
