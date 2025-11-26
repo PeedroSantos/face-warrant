@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Face Recognition System</title>
-    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
     <div class="container">
@@ -253,7 +253,7 @@
 
                 if (response.ok) {
                     showStatus(statusDiv, `Processed ${data.total_frames} frames`, 'success');
-                    displayVideoResults(data, resultsDiv);
+                    await displayVideoResults(data, resultsDiv);
                 } else {
                     showStatus(statusDiv, data.detail || 'Error recognizing video', 'error');
                 }
@@ -382,7 +382,7 @@
             container.innerHTML = html;
         }
 
-        function displayVideoResults(data, container) {
+        async function displayVideoResults(data, container) {
                 const html = `
                 <div class="results-container">
                     <h3>Video Analysis Results</h3>
@@ -399,13 +399,43 @@
                         `).join('')
                     }
                     <h4 class="section-title">Annotated Video:</h4>
-                    <video width="100%" controls class="rounded mt-10">
-                        <source src="${data.video_url}" type="video/mp4">
-                        Your browser does not support the video tag.
-                    </video>
+                    <video id="resultVideo" width="100%" controls preload="metadata" class="rounded mt-10">Your browser does not support the video tag.</video>
+                    <div class="mt-10">
+                        <a id="videoStaticLink" href="" target="_blank">Abrir vídeo em nova aba (fallback)</a>
+                    </div>
                 </div>
             `;
             container.innerHTML = html;
+
+            // Try fetching the video as a Blob and use Object URL for playback.
+            // This provides a fallback if the browser isn't making range requests properly.
+            try {
+                console.log('Video URL (API):', data.video_url, 'Static URL:', data.video_static_url);
+                const resp = await fetch(data.video_static_url);
+                if (resp.ok) {
+                    const blob = await resp.blob();
+                    const videoEl = container.querySelector('#resultVideo');
+                    const url = URL.createObjectURL(blob);
+                    if (videoEl) {
+                        console.log('Fetched video blob with content-type', resp.headers.get('content-type'));
+                        videoEl.src = url;
+                        videoEl.onerror = () => { console.error('Video element error', videoEl.error); };
+                        videoEl.onloadedmetadata = () => { console.log('video duration:', videoEl.duration, 'width', videoEl.videoWidth, 'height', videoEl.videoHeight); };
+                    }
+                const link = container.querySelector('#videoStaticLink');
+                if (link) { link.href = data.video_static_url; }
+                } else {
+                    console.error('Failed to fetch video', resp.status, resp.statusText);
+                    // Try setting static URL directly as the src (no blob)
+                    const videoEl = container.querySelector('#resultVideo');
+                    if (videoEl) {
+                        videoEl.src = data.video_static_url;
+                        console.warn('Used static URL as fallback for playback');
+                    }
+                }
+            } catch (err) {
+                console.error('Error loading video blob:', err);
+            }
         }
 
         // Load known faces on page load

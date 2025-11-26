@@ -1,5 +1,6 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException, Form
-from fastapi.responses import HTMLResponse, StreamingResponse, JSONResponse
+from fastapi import FastAPI, File, UploadFile, HTTPException, Form, Header
+from fastapi.responses import HTMLResponse, StreamingResponse, JSONResponse, FileResponse, Response
+from typing import Optional
 from fastapi.staticfiles import StaticFiles
 import cv2
 import numpy as np
@@ -9,6 +10,7 @@ import os
 from pathlib import Path
 import asyncio
 from datetime import datetime
+import tempfile
 
 from face_processor import FaceRecognizer, FaceDatabase
 
@@ -17,10 +19,15 @@ app = FastAPI(title="Face Recognition System")
 Path("uploaded_files").mkdir(exist_ok=True)
 Path("known_faces").mkdir(exist_ok=True)
 Path("static").mkdir(exist_ok=True)
+Path("css").mkdir(exist_ok=True)
 Path("templates").mkdir(exist_ok=True)
 
 if os.path.exists("static"):
     app.mount("/static", StaticFiles(directory="static"), name="static")
+if os.path.exists("uploaded_files"):
+    app.mount("/uploaded_files", StaticFiles(directory="uploaded_files"), name="uploaded_files")
+if os.path.exists("css"):
+    app.mount("/css", StaticFiles(directory="css"), name="css")
 
 db = FaceDatabase("known_faces")
 recognizer = FaceRecognizer("faces.pt", db)
@@ -177,6 +184,17 @@ async def recognize_video(file: UploadFile = File(...)):
         
         cap.release()
         out.release()
+        # Validate the written output with OpenCV to ensure it is readable
+        try:
+            test_cap = cv2.VideoCapture(output_path)
+            if not test_cap.isOpened():
+                print(f"Warning: output video '{output_path}' cannot be opened by OpenCV.")
+            else:
+                ret_test, _ = test_cap.read()
+                print(f"Output video first frame read success: {ret_test}")
+            test_cap.release()
+        except Exception as e:
+            print(f"Error validating output video: {e}")
         
         if not os.path.exists(output_path):
             raise Exception("Video file was not created")
@@ -188,6 +206,48 @@ async def recognize_video(file: UploadFile = File(...)):
         print(f"Video created successfully: {output_path}, size: {file_size} bytes")
         
         os.remove(input_path)
+
+        # Try re-encoding to a more compatible codec container for web browsers (H264)
+        try_reencode = True
+        if try_reencode:
+            try:
+                reencoded_path = f"{output_path}.re.mp4"
+                print(f"Attempting re-encode to H264-like fourcc for better browser compatibility: {reencoded_path}")
+                cap_re = cv2.VideoCapture(output_path)
+                if cap_re.isOpened():
+                    w = int(cap_re.get(cv2.CAP_PROP_FRAME_WIDTH))
+                    h = int(cap_re.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                    fps_r = int(cap_re.get(cv2.CAP_PROP_FPS)) or fps
+                    codecs_to_try = ["avc1", "H264", "X264", "mp4v"]
+                    reencoded = False
+                    for codec in codecs_to_try:
+                        try:
+                            fourcc_re = cv2.VideoWriter_fourcc(*codec)
+                            out_re = cv2.VideoWriter(reencoded_path, fourcc_re, fps_r, (w, h))
+                            if not out_re.isOpened():
+                                print(f"Codec {codec} didn't open writer")
+                                continue
+                            cap_re.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                            while True:
+                                ret_r, frame_r = cap_re.read()
+                                if not ret_r:
+                                    break
+                                out_re.write(frame_r)
+                            out_re.release()
+                            reencoded = True
+                            print(f"Re-encoding succeeded with codec {codec}")
+                            break
+                        except Exception as e:
+                            print(f"Re-encode attempt with {codec} failed: {e}")
+                    cap_re.release()
+                    if reencoded and os.path.exists(reencoded_path):
+                        os.replace(reencoded_path, output_path)
+                        print(f"Reencoded file replaced the output: {output_path}")
+                    else:
+                        if os.path.exists(reencoded_path):
+                            os.remove(reencoded_path)
+            except Exception as e:
+                print(f"Error during optional re-encoding: {e}")
         
         return {
             "status": "success",
@@ -195,6 +255,7 @@ async def recognize_video(file: UploadFile = File(...)):
             "recognized_faces": people_found,
             "total_recognized": recognized_count,
             "video_url": f"/api/video/{timestamp}",
+            "video_static_url": f"/uploaded_files/{os.path.basename(output_path)}",
             "file_size": file_size
         }
     except Exception as e:
@@ -265,6 +326,12 @@ async def get_known_faces():
     return {"known_faces": known, "count": len(known)}
 
 
+@app.get("/api/list-videos")
+async def list_videos():
+    files = [f for f in os.listdir("uploaded_files") if f.endswith("_output.mp4")]
+    return {"videos": files, "count": len(files)}
+
+
 @app.post("/api/clear-database")
 async def clear_database():
     db.known_encodings = []
@@ -274,7 +341,7 @@ async def clear_database():
 
 
 @app.get("/api/video/{video_id}")
-async def get_video(video_id: str):
+async def get_video(video_id: str, range: Optional[str] = Header(None)):
     try:
         video_path = None
         for file in os.listdir("uploaded_files"):
@@ -288,10 +355,47 @@ async def get_video(video_id: str):
             raise HTTPException(status_code=404, detail="Video not found")
         
         print(f"Serving video: {video_path}")
-        return StreamingResponse(
-            open(video_path, "rb"),
+        print(f"Range Header: {range}")
+        print(f"Video file_size: {file_size}")
+
+        # If an incoming Range header exists, return partial content
+        file_size = os.path.getsize(video_path)
+        if range:
+            try:
+                range_val = range.strip().lower()
+                if range_val.startswith("bytes="):
+                    range_val = range_val.replace("bytes=", "")
+                start_str, end_str = range_val.split("-")
+                start = int(start_str) if start_str else 0
+                end = int(end_str) if end_str else file_size - 1
+                end = min(end, file_size - 1)
+                if start > end:
+                    return Response(status_code=416)
+
+                length = end - start + 1
+                with open(video_path, "rb") as f:
+                    f.seek(start)
+                    data = f.read(length)
+
+                headers = {
+                    "Content-Range": f"bytes {start}-{end}/{file_size}",
+                    "Accept-Ranges": "bytes",
+                    "Content-Length": str(length),
+                    "Content-Disposition": f"inline; filename={os.path.basename(video_path)}",
+                }
+                return Response(content=data, status_code=206, media_type="video/mp4", headers=headers)
+            except Exception as e:
+                print(f"Range processing error: {e}")
+                # fall back to sending entire file
+
+        return FileResponse(
+            path=video_path,
             media_type="video/mp4",
-            headers={"Content-Disposition": "inline"}
+            filename=os.path.basename(video_path),
+            headers={
+                "Content-Disposition": f"inline; filename={os.path.basename(video_path)}",
+                "Accept-Ranges": "bytes",
+            }
         )
     except HTTPException:
         raise
@@ -308,6 +412,9 @@ async def health_check():
         "database_loaded": len(db.known_encodings) > 0
     }
 
+@app.get('/api/health')
+async def get_health():
+    return await health_check()
 
 if __name__ == "__main__":
     import uvicorn
