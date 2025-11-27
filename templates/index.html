@@ -87,8 +87,42 @@
             <div class="section">
                 <h2>⚙️ System Status</h2>
                 <button class="btn btn-secondary btn-small" onclick="checkHealth()">Check Status</button>
+                <button class="btn btn-small" id="healthConfigBtn" title="Configurar status" onclick="toggleHealthConfig()">⚙️</button>
                 <div id="healthStatus" class="health-box">
-                    <p id="healthText">Click 'Check Status' to get system information</p>
+                    <div id="healthSpinner" class="spinner" style="display: none"></div>
+                    <div id="healthSimple" class="health-simple">
+                        <div id="statusBadge" class="status-badge muted">Unknown</div>
+                        <div id="healthChips" class="health-chips">
+                            <span class="status-chip" data-type="faces"><span class="chip-icon">👥</span><strong id="facesChip">0</strong><span class="chip-label">Faces</span></span>
+                            <span class="status-chip" data-type="webcam"><span class="chip-icon">📷</span><strong id="webcamChip">Unknown</strong><span class="chip-label">Webcam</span></span>
+                            <span class="status-chip" data-type="db"><span class="chip-icon">💾</span><strong id="dbChip">Unknown</strong><span class="chip-label">DB</span></span>
+                            <span class="status-chip" data-type="model"><span class="chip-icon">🧠</span><strong id="modelChip">N/A</strong><span class="chip-label">Model</span></span>
+                            <span class="status-chip" data-type="disk"><span class="chip-icon">🗄️</span><strong id="diskChip">N/A</strong><span class="chip-label">Disk</span></span>
+                            <span class="status-chip" data-type="uptime"><span class="chip-icon">⏱️</span><strong id="uptimeChip">N/A</strong><span class="chip-label">Uptime</span></span>
+                        </div>
+                        <div id="healthMetrics" class="health-metrics">
+                            <div class="metric">
+                                <label>CPU</label>
+                                <div class="metric-bar" id="cpuBar"><div class="metric-bar-fill" id="cpuFill" style="width:0%"></div></div>
+                            </div>
+                            <div class="metric">
+                                <label>Memory</label>
+                                <div class="metric-bar" id="memBar"><div class="metric-bar-fill" id="memFill" style="width:0%"></div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Config dropdown for showing chips / icon-only mode -->
+                    <div id="healthConfig" class="health-config hidden">
+                        <label><input type="checkbox" id="cfg_faces"> Faces</label><br>
+                        <label><input type="checkbox" id="cfg_webcam"> Webcam</label><br>
+                        <label><input type="checkbox" id="cfg_db"> DB</label><br>
+                        <label><input type="checkbox" id="cfg_model"> Model</label><br>
+                        <label><input type="checkbox" id="cfg_disk"> Disk</label><br>
+                        <label><input type="checkbox" id="cfg_uptime"> Uptime</label><br>
+                        <label style="display:block;margin-top:8px"><input type="checkbox" id="cfg_icon_only"> Icon-only</label>
+                    </div>
+                    <div id="healthText" class="mt-10 muted small">Click 'Check Status' to get system information</div>
                 </div>
             </div>
 
@@ -379,18 +413,74 @@
 
         // Health Check
         async function checkHealth() {
+            const healthText = document.getElementById('healthText');
+            const spinner = document.getElementById('healthSpinner');
+            const statusBadge = document.getElementById('statusBadge');
+            const facesChip = document.getElementById('facesChip');
+            const webcamChip = document.getElementById('webcamChip');
+            const dbChip = document.getElementById('dbChip');
+            const modelChip = document.getElementById('modelChip');
+            const diskChip = document.getElementById('diskChip');
+            const uptimeChip = document.getElementById('uptimeChip');
+            const cpuFill = document.getElementById('cpuFill');
+            const memFill = document.getElementById('memFill');
             try {
+                spinner.style.display = 'block';
+                healthText.textContent = 'Checking system...';
                 const response = await fetch('/api/health');
                 const data = await response.json();
-                const healthText = document.getElementById('healthText');
-                healthText.innerHTML = `
-                    <strong>Status:</strong> ${data.status} ✓<br>
-                    <strong>Model:</strong> ${data.model}<br>
-                    <strong>Known Faces:</strong> ${data.known_faces}<br>
-                    <strong>Database:</strong> ${data.database_loaded ? '✓ Loaded' : '✗ Empty'}
-                `;
+                // Format uptime HH:MM:SS
+                const uptimeSec = Math.floor(data.uptime_seconds || 0);
+                const hh = String(Math.floor(uptimeSec / 3600)).padStart(2, '0');
+                const mm = String(Math.floor((uptimeSec % 3600) / 60)).padStart(2, '0');
+                const ss = String(uptimeSec % 60).padStart(2, '0');
+                const uptime = `${hh}:${mm}:${ss}`;
+
+                const summary = data.simple || {};
+                const statusText = summary.ok ? '✓ OK' : (data.status === 'ok' ? '✓ OK' : '✗ ' + (data.status || 'unknown'));
+                    const facesText = data.known_faces || 0;
+                const cpuVal = (data.cpu_percent !== null && data.cpu_percent !== undefined) ? Math.round(Math.max(0, Math.min(100, data.cpu_percent))) : null;
+                const memVal = (data.memory_percent !== null && data.memory_percent !== undefined) ? Math.round(Math.max(0, Math.min(100, data.memory_percent))) : null;
+                const webcamText = data.webcam_available ? 'Yes' : 'No';
+
+                // Update simpler visual elements
+                if (summary.ok) {
+                    statusBadge.className = 'status-badge ok';
+                    statusBadge.textContent = 'OK';
+                } else {
+                    statusBadge.className = data.status === 'ok' ? 'status-badge ok' : 'status-badge err';
+                    statusBadge.textContent = data.status === 'ok' ? 'OK' : 'ERROR';
+                }
+                facesChip.textContent = facesText;
+                webcamChip.textContent = webcamText;
+                dbChip.textContent = data.database_loaded ? 'Yes' : 'No';
+                modelChip.textContent = data.model ? (data.model.length > 24 ? data.model.slice(0,21) + '...' : data.model) : 'N/A';
+                diskChip.textContent = data.disk_free_gb !== null && data.disk_free_gb !== undefined ? `${data.disk_free_gb} GB` : 'N/A';
+                uptimeChip.textContent = summary.uptime || uptime || 'N/A';
+                // Set fills (bounded 0..100)
+                if (cpuVal !== null) {
+                    cpuFill.style.width = cpuVal + '%';
+                    cpuFill.style.background = cpuVal > 80 ? '#dc3545' : cpuVal > 60 ? '#ffc107' : '#28a745';
+                    cpuFill.title = `${cpuVal}%`;
+                } else {
+                    cpuFill.style.width = '0%';
+                    cpuFill.title = 'N/A';
+                }
+                if (memVal !== null) {
+                    memFill.style.width = memVal + '%';
+                    memFill.style.background = memVal > 80 ? '#dc3545' : memVal > 60 ? '#ffc107' : '#28a745';
+                    memFill.title = `${memVal}%`;
+                } else {
+                    memFill.style.width = '0%';
+                    memFill.title = 'N/A';
+                }
+                // Set a very brief human-friendly health text (compact)
+                healthText.innerHTML = `${statusText} • Faces: ${facesText}`;
             } catch (error) {
-                document.getElementById('healthText').textContent = 'Error: ' + error.message;
+                healthText.className = 'status-message error';
+                healthText.textContent = 'Error: ' + (error.message || String(error));
+            } finally {
+                spinner.style.display = 'none';
             }
         }
 
@@ -480,7 +570,61 @@
         window.addEventListener('load', () => {
             loadKnownFaces();
             checkHealth();
+            initHealthConfig();
         });
+
+        function toggleHealthConfig() {
+            const cfg = document.getElementById('healthConfig');
+            if (cfg.classList.contains('hidden')) {
+                cfg.classList.remove('hidden');
+            } else {
+                cfg.classList.add('hidden');
+            }
+        }
+
+        function initHealthConfig(){
+            const cfgMap = ['faces','webcam','db','model','disk','uptime'];
+            const saved = JSON.parse(localStorage.getItem('healthConfig') || '{}');
+            cfgMap.forEach(k => {
+                const box = document.getElementById('cfg_' + k);
+                if (!box) return;
+                box.checked = saved[k] !== undefined ? saved[k] : true;
+                box.addEventListener('change', () => saveAndApplyConfig(cfgMap));
+            });
+            const iconBox = document.getElementById('cfg_icon_only');
+            const iconOnlySaved = saved['icon_only'] || false;
+            iconBox.checked = iconOnlySaved;
+            iconBox.addEventListener('change', () => saveAndApplyConfig(cfgMap));
+            applyConfigToUI(saved, cfgMap, iconOnlySaved);
+        }
+
+        function saveAndApplyConfig(cfgMap){
+            const cfg = {};
+            cfgMap.forEach(k => { cfg[k] = document.getElementById('cfg_' + k).checked });
+            cfg.icon_only = document.getElementById('cfg_icon_only').checked;
+            localStorage.setItem('healthConfig', JSON.stringify(cfg));
+            applyConfigToUI(cfg, cfgMap, cfg.icon_only);
+        }
+
+        function applyConfigToUI(cfg, cfgMap, iconOnly){
+            // Toggle chips
+            cfgMap.forEach(k => {
+                const chip = document.querySelector(`.status-chip[data-type="${k}"]`);
+                if (!chip) return;
+                if (cfg && cfg[k] === false) {
+                    chip.style.display = 'none';
+                } else {
+                    chip.style.display = 'inline-flex';
+                }
+            });
+            // Toggle icon-only mode
+            const simple = document.getElementById('healthSimple');
+            if (iconOnly) {
+                simple.classList.add('icon-only');
+            } else {
+                simple.classList.remove('icon-only');
+            }
+        }
     </script>
 </body>
 </html>

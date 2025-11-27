@@ -10,6 +10,16 @@ import os
 from pathlib import Path
 import asyncio
 from datetime import datetime
+try:
+    import psutil
+except Exception:
+    psutil = None
+import platform
+import shutil
+try:
+    import torch
+except Exception:
+    torch = None
 import tempfile
 
 from face_processor import FaceRecognizer, FaceDatabase
@@ -34,6 +44,9 @@ recognizer = FaceRecognizer("faces.pt", db)
 
 webcam_active = False
 webcam_lock = asyncio.Lock()
+
+# Track app start time for uptime in health endpoint
+app_start_time = datetime.now()
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -427,12 +440,105 @@ async def get_video(video_id: str, range: Optional[str] = Header(None)):
 
 
 async def health_check():
-    return {
-        "status": "ok",
-        "model": "YOLOv11",
-        "known_faces": len(db.get_all_names()),
-        "database_loaded": len(db.known_encodings) > 0
-    }
+    try:
+        # Model / version info
+        try:
+            model_info = str(recognizer.yolo_model)
+        except Exception:
+            model_info = "YOLO (unknown details)"
+
+        # Known faces and DB
+        known_faces = len(db.get_all_names())
+        database_loaded = len(db.known_encodings) > 0
+
+        # faces.pt presence
+        faces_pt_exists = os.path.exists("faces.pt")
+
+        # Torch / CUDA
+        if torch is not None:
+            try:
+                torch_version = torch.__version__
+                cuda_available = torch.cuda.is_available()
+                cuda_count = torch.cuda.device_count() if cuda_available else 0
+                try:
+                    cuda_name = torch.cuda.get_device_name(0) if cuda_available and cuda_count > 0 else None
+                except Exception:
+                    cuda_name = None
+            except Exception:
+                torch_version = None
+                cuda_available = False
+                cuda_count = 0
+                cuda_name = None
+        else:
+            torch_version = None
+            cuda_available = False
+            cuda_count = 0
+            cuda_name = None
+
+        # System metrics
+        if psutil is not None:
+            try:
+                mem = psutil.virtual_memory()
+                cpu_percent = psutil.cpu_percent(interval=0.1)
+            except Exception:
+                mem = None
+                cpu_percent = None
+        else:
+            mem = None
+            cpu_percent = None
+        try:
+            disk_usage = shutil.disk_usage('.')
+            disk_free_gb = disk_usage.free // (1024 * 1024 * 1024)
+        except Exception:
+            disk_free_gb = None
+
+        # Webcam availability (fast check)
+        try:
+            cap = cv2.VideoCapture(0)
+            webcam_ok = cap.isOpened()
+            if webcam_ok:
+                cap.release()
+        except Exception:
+            webcam_ok = False
+
+        # uptime
+        uptime_seconds = (datetime.now() - app_start_time).total_seconds()
+
+        # Compose a lightweight summary for simpler UI rendering
+        uptime_str = str(datetime.now() - app_start_time).split('.')[0]  # HH:MM:SS
+        simple = {
+            "ok": True,
+            "known_faces": known_faces,
+            "database_loaded": database_loaded,
+            "webcam_available": webcam_ok,
+            "cpu_percent": cpu_percent if cpu_percent is not None else None,
+            "memory_percent": mem.percent if mem is not None else None,
+            "disk_free_gb": disk_free_gb,
+            "model": model_info,
+            "uptime": uptime_str,
+        }
+
+        return {
+            "status": "ok",
+            "model": model_info,
+            "known_faces": known_faces,
+            "database_loaded": database_loaded,
+            "faces_pt_exists": faces_pt_exists,
+            "torch_version": torch_version,
+            "cuda_available": cuda_available,
+            "cuda_count": cuda_count,
+            "cuda_name": cuda_name,
+            "memory_percent": mem.percent if mem is not None else None,
+            "cpu_percent": cpu_percent,
+            "disk_free_gb": disk_free_gb,
+            "webcam_available": webcam_ok,
+            "uptime_seconds": uptime_seconds,
+            "platform": platform.platform(),
+            "simple": simple,
+        }
+    except Exception as e:
+        print(f"[health_check] Exception assembling health info: {e}")
+        return {"status": "error", "detail": str(e)}
 
 @app.get('/api/health')
 async def get_health():
