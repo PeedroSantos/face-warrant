@@ -1,45 +1,45 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Face Recognition System</title>
+    <title>Sistema de Reconhecimento Facial</title>
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎯 Face Recognition System</h1>
-            <p>Powered by YOLOv11 and Face Recognition</p>
+            <h1>🎯 Sistema de Reconhecimento Facial</h1>
+            <p>Alimentado por YOLOv11 e Reconhecimento Facial</p>
         </div>
 
         <div class="mainContent">
             
             <div class="section">
-                <h2>➕ Add Known Face</h2>
+                <h2>➕ Adicionar Rosto Conhecido</h2>
                 <div class="formGroup">
-                    <label for="faceNameInput">Person's Name:</label>
-                    <input type="text" id="faceNameInput" placeholder="Enter the person's name">
+                    <label for="faceNameInput">Nome da Pessoa:</label>
+                    <input type="text" id="faceNameInput" placeholder="Digite o nome da pessoa">
                 </div>
                 <div class="formGroup">
-                    <label for="faceImageInput">Select Image:</label>
+                    <label for="faceImageInput">Selecionar Imagem:</label>
                     <input type="file" id="faceImageInput" accept="image/*">
                 </div>
                 <div class="preview-area" id="addFacePreview"></div>
-                <button class="btn btn-primary" onclick="addKnownFace()">Add Face to Database</button>
+                <button class="btn btn-primary" onclick="addKnownFace()">Adicionar ao Banco de Dados</button>
                 <div id="addFaceStatus" class="status-message"></div>
                 <div class="spinner" id="addFaceSpinner"></div>
             </div>
 
             
             <div class="section">
-                <h2>🖼️ Recognize Image</h2>
+                <h2>🖼️ Reconhecer Imagem</h2>
                 <div class="formGroup">
-                    <label for="recognizeImageInput">Select Image:</label>
+                    <label for="recognizeImageInput">Selecionar Imagem:</label>
                     <input type="file" id="recognizeImageInput" accept="image/*">
                 </div>
                 <div class="preview-area" id="recognizeImagePreview"></div>
-                <button class="btn btn-primary" onclick="recognizeImage()">Recognize Faces</button>
+                <button class="btn btn-primary" onclick="recognizeImage()">Reconhecer Rostos</button>
                 <div id="imageStatus" class="status-message"></div>
                 <div class="spinner" id="imageSpinner"></div>
                 <div id="imageResults"></div>
@@ -47,12 +47,12 @@
 
             
             <div class="section">
-                <h2>🎬 Recognize Video</h2>
+                <h2>🎬 Reconhecer Vídeo</h2>
                 <div class="formGroup">
-                    <label for="recognizeVideoInput">Select Video:</label>
+                    <label for="recognizeVideoInput">Selecionar Vídeo:</label>
                     <input type="file" id="recognizeVideoInput" accept="video/*">
                 </div>
-                <button class="btn btn-primary" onclick="recognizeVideo()">Recognize Faces in Video</button>
+                <button class="btn btn-primary" onclick="recognizeVideo()">Reconhecer Rostos no Vídeo</button>
                 <div id="videoStatus" class="status-message"></div>
                 <div class="spinner" id="videoSpinner"></div>
                 <div id="videoResults"></div>
@@ -60,45 +60,45 @@
 
             
             <div class="section">
-                <h2>📹 Webcam Recognition</h2>
+                <h2>📹 Reconhecimento por Webcam</h2>
                 <div class="webcam-container">
                     <img id="webcamStream" class="hidden max-full rounded" alt="Server webcam stream">
-                    <p class="muted small">This stream is from the server camera (not your local device). If you expect to use your browser camera, the app needs a client-side implementation using getUserMedia.</p>
+                    <p class="muted small">Esta transmissão é da câmera do servidor (não do seu dispositivo local). Se você quiser usar a câmera do navegador, a aplicação precisa de uma implementação do lado do cliente usando getUserMedia.</p>
                     <div id="cameraStatus" class="status-message info hidden">
-                        Initializing camera...
+                        Inicializando câmera...
                     </div>
                 </div>
-                <button class="btn btn-primary" id="webcamBtn" onclick="startWebcam()">Start Webcam</button>
-                <button class="btn btn-danger hidden" id="stopWebcamBtn" onclick="stopWebcam()">Stop Webcam</button>
+                <button class="btn btn-primary" id="webcamBtn" onclick="startWebcam()">Iniciar Webcam</button>
+                <button class="btn btn-danger hidden" id="stopWebcamBtn" onclick="stopWebcam()">Parar Webcam</button>
             </div>
 
             
             <div class="section">
-                <h2>👥 Known Faces</h2>
-                <button class="btn btn-secondary btn-small" onclick="loadKnownFaces()">Refresh List</button>
+                <h2>👥 Rostos Conhecidos</h2>
+                <button class="btn btn-secondary btn-small" onclick="loadKnownFaces()">Atualizar Lista</button>
                 <div id="knownFacesList" class="known-faces-list">
-                    <p class="muted">No faces loaded yet. Add a face to get started!</p>
+                    <p class="muted">Nenhum rosto carregado ainda. Adicione um rosto para começar!</p>
                 </div>
-                <button class="btn btn-danger btn-small" onclick="clearDatabase()">Clear All Faces</button>
+                <button class="btn btn-danger btn-small" onclick="clearDatabase()">Limpar Todos os Rostos</button>
                 <div id="dbStatus" class="status-message"></div>
             </div>
 
             
             <div class="section">
-                <h2>⚙️ System Status</h2>
-                <button class="btn btn-secondary btn-small" onclick="checkHealth()">Check Status</button>
+                <h2>⚙️ Status do Sistema</h2>
+                <button class="btn btn-secondary btn-small" onclick="checkHealth()">Verificar Status</button>
                 <button class="btn btn-small" id="healthConfigBtn" title="Configurar status" onclick="toggleHealthConfig()">⚙️</button>
                 <div id="healthStatus" class="health-box">
                     <div id="healthSpinner" class="spinner" style="display: none"></div>
                     <div id="healthSimple" class="health-simple">
-                        <div id="statusBadge" class="status-badge muted">Unknown</div>
+                        <div id="statusBadge" class="status-badge muted">Desconhecido</div>
                         <div id="healthChips" class="health-chips">
-                            <span class="status-chip" data-type="faces"><span class="chip-icon">👥</span><strong id="facesChip">0</strong><span class="chip-label">Faces</span></span>
-                            <span class="status-chip" data-type="webcam"><span class="chip-icon">📷</span><strong id="webcamChip">Unknown</strong><span class="chip-label">Webcam</span></span>
-                            <span class="status-chip" data-type="db"><span class="chip-icon">💾</span><strong id="dbChip">Unknown</strong><span class="chip-label">DB</span></span>
-                            <span class="status-chip" data-type="model"><span class="chip-icon">🧠</span><strong id="modelChip">N/A</strong><span class="chip-label">Model</span></span>
-                            <span class="status-chip" data-type="disk"><span class="chip-icon">🗄️</span><strong id="diskChip">N/A</strong><span class="chip-label">Disk</span></span>
-                            <span class="status-chip" data-type="uptime"><span class="chip-icon">⏱️</span><strong id="uptimeChip">N/A</strong><span class="chip-label">Uptime</span></span>
+                                <span class="status-chip" data-type="faces"><span class="chip-icon">👥</span><strong id="facesChip">0</strong><span class="chip-label">Rostos</span></span>
+                                <span class="status-chip" data-type="webcam"><span class="chip-icon">📷</span><strong id="webcamChip">Desconhecido</strong><span class="chip-label">Webcam</span></span>
+                                <span class="status-chip" data-type="db"><span class="chip-icon">💾</span><strong id="dbChip">Desconhecido</strong><span class="chip-label">BD</span></span>
+                                <span class="status-chip" data-type="model"><span class="chip-icon">🧠</span><strong id="modelChip">N/A</strong><span class="chip-label">Modelo</span></span>
+                                <span class="status-chip" data-type="disk"><span class="chip-icon">🗄️</span><strong id="diskChip">N/A</strong><span class="chip-label">Disco</span></span>
+                                <span class="status-chip" data-type="uptime"><span class="chip-icon">⏱️</span><strong id="uptimeChip">N/A</strong><span class="chip-label">Tempo Ativo</span></span>
                         </div>
                         <div id="healthMetrics" class="health-metrics">
                             <div class="metric">
@@ -106,7 +106,7 @@
                                 <div class="metric-bar" id="cpuBar"><div class="metric-bar-fill" id="cpuFill" style="width:0%"></div></div>
                             </div>
                             <div class="metric">
-                                <label>Memory</label>
+                                <label>Memória</label>
                                 <div class="metric-bar" id="memBar"><div class="metric-bar-fill" id="memFill" style="width:0%"></div></div>
                             </div>
                         </div>
@@ -114,37 +114,37 @@
 
                     <!-- Config dropdown for showing chips / icon-only mode -->
                     <div id="healthConfig" class="health-config hidden">
-                        <label><input type="checkbox" id="cfg_faces"> Faces</label><br>
+                        <label><input type="checkbox" id="cfg_faces"> Rostos</label><br>
                         <label><input type="checkbox" id="cfg_webcam"> Webcam</label><br>
-                        <label><input type="checkbox" id="cfg_db"> DB</label><br>
-                        <label><input type="checkbox" id="cfg_model"> Model</label><br>
-                        <label><input type="checkbox" id="cfg_disk"> Disk</label><br>
-                        <label><input type="checkbox" id="cfg_uptime"> Uptime</label><br>
+                        <label><input type="checkbox" id="cfg_db"> BD</label><br>
+                        <label><input type="checkbox" id="cfg_model"> Modelo</label><br>
+                        <label><input type="checkbox" id="cfg_disk"> Disco</label><br>
+                        <label><input type="checkbox" id="cfg_uptime"> Tempo Ativo</label><br>
                         <label style="display:block;margin-top:8px"><input type="checkbox" id="cfg_icon_only"> Icon-only</label>
                     </div>
-                    <div id="healthText" class="mt-10 muted small">Click 'Check Status' to get system information</div>
+                    <div id="healthText" class="mt-10 muted small">Clique em 'Verificar Status' para obter informações do sistema</div>
                 </div>
             </div>
 
             
             <div class="section full-width">
-                <h2>ℹ️ How to Use</h2>
+                <h2>ℹ️ Como Usar</h2>
                 <div class="infoSection">
-                    <h4>🚀 Quick Start:</h4>
+                    <h4>🚀 Início Rápido:</h4>
                     <ul>
-                        <li><strong>Add Known Faces:</strong> Upload a clear photo of a person and give them a name. The system will learn their face.</li>
-                        <li><strong>Recognize Image:</strong> Upload an image and the system will detect and identify all faces.</li>
-                        <li><strong>Recognize Video:</strong> Upload a video file to analyze and find recognized faces throughout.</li>
-                        <li><strong>Live Webcam:</strong> Start your webcam for real-time face detection and recognition.</li>
+                        <li><strong>Adicionar Rostos Conhecidos:</strong> Envie uma foto nítida da pessoa e atribua um nome. O sistema aprenderá esse rosto.</li>
+                        <li><strong>Reconhecer Imagem:</strong> Envie uma imagem e o sistema detectará e identificará todos os rostos.</li>
+                        <li><strong>Reconhecer Vídeo:</strong> Envie um arquivo de vídeo para analisar e encontrar rostos reconhecidos ao longo dele.</li>
+                        <li><strong>Webcam Ao Vivo:</strong> Inicie a webcam para detecção e reconhecimento facial em tempo real.</li>
                     </ul>
                 </div>
                 <div class="infoSection">
-                    <h4>💡 Tips:</h4>
+                    <h4>💡 Dicas:</h4>
                     <ul>
-                        <li>Add multiple photos of the same person for better recognition accuracy.</li>
-                        <li>Ensure good lighting when adding faces to the database.</li>
-                        <li>The system works best with clear, frontal face images.</li>
-                        <li>Processing quality improves with more diverse training images.</li>
+                        <li>Adicione várias fotos da mesma pessoa para melhorar a precisão do reconhecimento.</li>
+                        <li>Garanta boa iluminação ao adicionar rostos ao banco de dados.</li>
+                        <li>O sistema funciona melhor com imagens nítidas e de rosto frontal.</li>
+                        <li>A qualidade do processamento melhora com imagens de treinamento mais diversas.</li>
                     </ul>
                 </div>
             </div>
@@ -185,12 +185,12 @@
             const spinner = document.getElementById('addFaceSpinner');
 
             if (!name) {
-                showStatus(statusDiv, 'Please enter a name', 'error');
+                showStatus(statusDiv, 'Por favor, insira um nome', 'error');
                 return;
             }
 
             if (!file) {
-                showStatus(statusDiv, 'Please select an image', 'error');
+                showStatus(statusDiv, 'Por favor, selecione uma imagem', 'error');
                 return;
             }
 
@@ -207,17 +207,17 @@
 
                 const data = await response.json();
 
-                if (response.ok) {
-                    showStatus(statusDiv, data.message, 'success');
+                    if (response.ok) {
+                    showStatus(statusDiv, translateApiMessage(data.message), 'success');
                     document.getElementById('faceNameInput').value = '';
                     document.getElementById('faceImageInput').value = '';
                     document.getElementById('addFacePreview').innerHTML = '';
                     await loadKnownFaces();
                 } else {
-                    showStatus(statusDiv, data.detail || 'Error adding face', 'error');
+                    showStatus(statusDiv, translateApiMessage(data.detail) || 'Erro ao adicionar rosto', 'error');
                 }
             } catch (error) {
-                showStatus(statusDiv, 'Error: ' + error.message, 'error');
+                showStatus(statusDiv, 'Erro: ' + error.message, 'error');
             } finally {
                 spinner.style.display = 'none';
             }
@@ -231,7 +231,7 @@
             const resultsDiv = document.getElementById('imageResults');
 
             if (!file) {
-                showStatus(statusDiv, 'Please select an image', 'error');
+                showStatus(statusDiv, 'Por favor, selecione uma imagem', 'error');
                 return;
             }
 
@@ -249,13 +249,13 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    showStatus(statusDiv, `Found ${data.data.total_faces} face(s)`, 'success');
+                    showStatus(statusDiv, `Encontrado(s) ${data.data.total_faces} rosto(s)`, 'success');
                     displayImageResults(data, resultsDiv);
                 } else {
-                    showStatus(statusDiv, data.detail || 'Error recognizing image', 'error');
+                    showStatus(statusDiv, translateApiMessage(data.detail) || 'Erro ao reconhecer imagem', 'error');
                 }
             } catch (error) {
-                showStatus(statusDiv, 'Error: ' + error.message, 'error');
+                showStatus(statusDiv, 'Erro: ' + error.message, 'error');
             } finally {
                 spinner.style.display = 'none';
             }
@@ -269,7 +269,7 @@
             const resultsDiv = document.getElementById('videoResults');
 
             if (!file) {
-                showStatus(statusDiv, 'Please select a video', 'error');
+                showStatus(statusDiv, 'Por favor, selecione um vídeo', 'error');
                 return;
             }
 
@@ -287,13 +287,13 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    showStatus(statusDiv, `Processed ${data.total_frames} frames`, 'success');
+                    showStatus(statusDiv, `Processados ${data.total_frames} quadros`, 'success');
                     await displayVideoResults(data, resultsDiv);
                 } else {
-                    showStatus(statusDiv, data.detail || 'Error recognizing video', 'error');
+                    showStatus(statusDiv, translateApiMessage(data.detail) || 'Erro ao reconhecer vídeo', 'error');
                 }
             } catch (error) {
-                showStatus(statusDiv, 'Error: ' + error.message, 'error');
+                showStatus(statusDiv, 'Erro: ' + error.message, 'error');
             } finally {
                 spinner.style.display = 'none';
             }
@@ -315,13 +315,13 @@
             cameraStatus.classList.remove('hidden');
             cameraStatus.classList.remove('error');
             cameraStatus.classList.add('info');
-            cameraStatus.textContent = 'Initializing camera...';
+            cameraStatus.textContent = 'Inicializando câmera...';
 
             // Attach error and load handlers
             stream.onerror = () => {
                 cameraStatus.classList.remove('info');
                 cameraStatus.classList.add('error');
-                cameraStatus.textContent = 'Failed to start webcam. The server camera might be unavailable.';
+                cameraStatus.textContent = 'Falha ao iniciar webcam. A câmera do servidor pode estar indisponível.';
                 // Restore UI
                 stream.classList.add('hidden');
                 webcamBtn.classList.remove('hidden');
@@ -331,7 +331,7 @@
             stream.onload = () => {
                 cameraStatus.classList.remove('info');
                 cameraStatus.classList.add('success');
-                cameraStatus.textContent = 'Webcam streaming.';
+                cameraStatus.textContent = 'Webcam transmitindo.';
             };
 
             try {
@@ -348,7 +348,7 @@
                 webcamStreaming = true;
             } catch (error) {
                 cameraStatus.className = 'status-message error';
-                cameraStatus.textContent = 'Error: ' + error.message;
+                cameraStatus.textContent = 'Erro: ' + error.message;
                 // Restore UI
                 stream.classList.add('hidden');
                 webcamBtn.classList.remove('hidden');
@@ -386,7 +386,7 @@
                 const list = document.getElementById('knownFacesList');
 
                 if (data.count === 0) {
-                    list.innerHTML = '<p class="muted">No faces in database. Add a face to get started!</p>';
+                    list.innerHTML = '<p class="muted">Nenhum rosto no banco de dados. Adicione um rosto para começar!</p>';
                 } else {
                     list.innerHTML = data.known_faces
                         .map(name => `<div class="face-badge">${name}</div>`)
@@ -399,14 +399,14 @@
 
         // Clear Database
         async function clearDatabase() {
-            if (confirm('Are you sure you want to delete all known faces? This cannot be undone!')) {
+            if (confirm('Tem certeza que deseja excluir todos os rostos conhecidos? Isso não pode ser desfeito!')) {
                 try {
                     const response = await fetch('/api/clear-database', { method: 'POST' });
                     const data = await response.json();
-                    showStatus(document.getElementById('dbStatus'), data.message, 'success');
+                    showStatus(document.getElementById('dbStatus'), translateApiMessage(data.message), 'success');
                     await loadKnownFaces();
                 } catch (error) {
-                    showStatus(document.getElementById('dbStatus'), 'Error: ' + error.message, 'error');
+                    showStatus(document.getElementById('dbStatus'), 'Erro: ' + error.message, 'error');
                 }
             }
         }
@@ -437,7 +437,7 @@
                 const uptime = `${hh}:${mm}:${ss}`;
 
                 const summary = data.simple || {};
-                const statusText = summary.ok ? '✓ OK' : (data.status === 'ok' ? '✓ OK' : '✗ ' + (data.status || 'unknown'));
+                const statusText = summary.ok ? '✓ OK' : (data.status === 'ok' ? '✓ OK' : '✗ ' + (data.status || 'desconhecido'));
                     const facesText = data.known_faces || 0;
                 const cpuVal = (data.cpu_percent !== null && data.cpu_percent !== undefined) ? Math.round(Math.max(0, Math.min(100, data.cpu_percent))) : null;
                 const memVal = (data.memory_percent !== null && data.memory_percent !== undefined) ? Math.round(Math.max(0, Math.min(100, data.memory_percent))) : null;
@@ -449,7 +449,7 @@
                     statusBadge.textContent = 'OK';
                 } else {
                     statusBadge.className = data.status === 'ok' ? 'status-badge ok' : 'status-badge err';
-                    statusBadge.textContent = data.status === 'ok' ? 'OK' : 'ERROR';
+                    statusBadge.textContent = data.status === 'ok' ? 'OK' : 'ERRO';
                 }
                 facesChip.textContent = facesText;
                 webcamChip.textContent = webcamText;
@@ -478,13 +478,28 @@
                 healthText.innerHTML = `${statusText} • Faces: ${facesText}`;
             } catch (error) {
                 healthText.className = 'status-message error';
-                healthText.textContent = 'Error: ' + (error.message || String(error));
+                healthText.textContent = 'Erro: ' + (error.message || String(error));
             } finally {
                 spinner.style.display = 'none';
             }
         }
 
         // Helper Functions
+        function translateApiMessage(msg) {
+            if (!msg) return msg;
+            // Common backend responses mapping
+            if (msg.startsWith("Face for '") && msg.endsWith('added successfully')) {
+                const parts = msg.split("'");
+                const name = parts[1] || '';
+                return `Rosto para '${name}' adicionado com sucesso`;
+            }
+            if (msg.includes('No face detected')) return 'Nenhum rosto detectado na imagem';
+            if (msg.includes('Database cleared')) return 'Banco de dados limpo';
+            if (msg.includes('Invalid image file')) return 'Arquivo de imagem inválido';
+            if (msg.includes('Camera not available')) return 'Câmera não disponível no servidor';
+            if (msg.includes('Video not found')) return 'Vídeo não encontrado';
+            return msg;
+        }
         function showStatus(element, message, type) {
             element.textContent = message;
             element.className = `status-message ${type}`;
@@ -493,17 +508,17 @@
         function displayImageResults(data, container) {
                 const html = `
                 <div class="results-container">
-                    <h3>Results</h3>
-                    <p><strong>Total Faces Detected:</strong> ${data.data.total_faces}</p>
+                    <h3>Resultados</h3>
+                    <p><strong>Total de Rostos Detectados:</strong> ${data.data.total_faces}</p>
                     <div>
                         ${data.data.recognized_faces.map(face => `
                             <div class="recognized-face">
-                                <span class="name">${face.name}</span>
-                                <span class="confidence">(${(face.confidence * 100).toFixed(1)}% confidence)</span>
+                                <span class="name">${face.name === 'Unknown' ? 'Desconhecido' : face.name}</span>
+                                <span class="confidence">(${(face.confidence * 100).toFixed(1)}% confiança)</span>
                             </div>
                         `).join('')}
                     </div>
-                    <h4 class="section-title">Annotated Image:</h4>
+                    <h4 class="section-title">Imagem Anotada:</h4>
                     <img class="max-full rounded mt-10" src="${data.image}">
                 </div>
             `;
@@ -513,21 +528,21 @@
         async function displayVideoResults(data, container) {
                 const html = `
                 <div class="results-container">
-                    <h3>Video Analysis Results</h3>
-                    <p><strong>Total Frames:</strong> ${data.total_frames}</p>
-                    <p><strong>Total Recognized Faces:</strong> ${data.total_recognized}</p>
-                    <h4 class="section-title">Recognized People:</h4>
+                    <h3>Resultados da Análise de Vídeo</h3>
+                    <p><strong>Total de Quadros:</strong> ${data.total_frames}</p>
+                    <p><strong>Total de Rostos Reconhecidos:</strong> ${data.total_recognized}</p>
+                    <h4 class="section-title">Pessoas Reconhecidas:</h4>
                     ${Object.keys(data.recognized_faces).length === 0 ? 
-                        '<p class="muted">No recognized faces found in video</p>' :
+                        '<p class="muted">Nenhum rosto reconhecido encontrado no vídeo</p>' :
                         Object.entries(data.recognized_faces).map(([name, count]) => `
                             <div class="recognized-face">
-                                <span class="name">${name}</span>
-                                <span class="confidence">${count} detection${count !== 1 ? 's' : ''}</span>
+                                <span class="name">${name === 'Unknown' ? 'Desconhecido' : name}</span>
+                                <span class="confidence">${count} detecção${count !== 1 ? 's' : ''}</span>
                             </div>
                         `).join('')
                     }
-                    <h4 class="section-title">Annotated Video:</h4>
-                    <video id="resultVideo" width="100%" controls preload="metadata" class="rounded mt-10">Your browser does not support the video tag.</video>
+                    <h4 class="section-title">Vídeo Anotado:</h4>
+                    <video id="resultVideo" width="100%" controls preload="metadata" class="rounded mt-10">Seu navegador não suporta a tag de vídeo.</video>
                     <div class="mt-10">
                         <a id="videoStaticLink" href="" target="_blank">Abrir vídeo em nova aba (fallback)</a>
                     </div>

@@ -195,7 +195,7 @@ class FaceRecognizer:
             color = (0, 255, 0) if name != "Unknown" else (0, 0, 255)
             cv2.rectangle(output, (x1, y1), (x2, y2), color, 2)
 
-            label = f"{name} ({confidence:.2f})" if name != "Unknown" else name
+            label = f"{name} ({confidence:.2f})" if name != "Unknown" else 'Desconhecido'
             cv2.putText(
                 output,
                 label,
