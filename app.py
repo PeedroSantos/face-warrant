@@ -113,34 +113,47 @@ async def add_known_face(name: str = Form(...), file: UploadFile = File(...)):
 @app.post("/api/recognize-image")
 async def recognize_image(file: UploadFile = File(...)):
     try:
+        # Ler imagem enviada
         contents = await file.read()
         nparr = np.frombuffer(contents, np.uint8)
         image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         
         if image is None:
             raise HTTPException(status_code=400, detail="Invalid image file")
-        
+
         results = recognizer.detect_and_recognize_faces(image)
-        
+
         output_image = recognizer.draw_results(image, results)
-        
+
         _, buffer = cv2.imencode('.jpg', output_image)
-        buffer_bytes = buffer.tobytes()
-        img_b64 = base64.b64encode(buffer_bytes).decode('ascii')
-        
-        response_data = {
-            "recognized_faces": [
-                {"name": name, "confidence": float(conf)}
-                for name, conf in results["recognized"]
-            ],
-            "total_faces": len(results["recognized"])
-        }
-        
+        img_b64 = base64.b64encode(buffer).decode("ascii")
+
+        response_faces = []
+
+        for (name, confidence, wanted), (top, right, bottom, left) in zip(
+            results["recognized"],
+            results["face_locations"]
+        ):
+            response_faces.append({
+                "status": "wanted" if wanted else "clear",
+                "name": name,
+                "confidence": float(confidence),
+                "wanted": wanted,
+                "box": {
+                    "x": int(left),
+                    "y": int(top),
+                    "w": int(right - left),
+                    "h": int(bottom - top)
+                }
+            })
+
         return {
             "status": "success",
-            "data": response_data,
+            "total_faces": len(response_faces),
+            "faces": response_faces,
             "image": f"data:image/jpeg;base64,{img_b64}"
         }
+
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -391,10 +404,10 @@ async def get_video(video_id: str, range: Optional[str] = Header(None)):
         
         print(f"Serving video: {video_path}")
         print(f"Range Header: {range}")
-        print(f"Video file_size: {file_size}")
-
-        # If an incoming Range header exists, return partial content
+        
         file_size = os.path.getsize(video_path)
+        print(f"Video file_size: {file_size}")
+        
         if range:
             try:
                 range_val = range.strip().lower()

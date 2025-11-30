@@ -512,6 +512,7 @@
                     <p><strong>Total de Rostos Detectados:</strong> ${data.data.total_faces}</p>
                     <div>
                         ${data.data.recognized_faces.map(face => `
+                            const isCriminal = face.is_criminal === true || face.status === "CRIMINOSO";
                             <div class="recognized-face">
                                 <span class="name">${face.name === 'Unknown' ? 'Desconhecido' : face.name}</span>
                                 <span class="confidence">(${(face.confidence * 100).toFixed(1)}% confiança)</span>

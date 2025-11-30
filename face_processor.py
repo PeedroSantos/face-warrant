@@ -14,10 +14,11 @@ class FaceDatabase:
         self.encodings_file = self.database_dir / "encodings.pkl"
         self.known_encodings = []
         self.known_names = []
+        self.known_wanted = []
         self.model_name = model_name
         self.load_database()
 
-    def add_face(self, image_path: str, name: str) -> bool:
+    def add_face(self, name, image_path=None, image_array=None, wanted=False):
         try:
             embedding = DeepFace.represent(img_path=image_path,
                                            model_name=self.model_name,
@@ -29,6 +30,7 @@ class FaceDatabase:
             encoding = np.array(embedding[0]['embedding'])
             self.known_encodings.append(encoding)
             self.known_names.append(name)
+            self.known_wanted.append(wanted)
             self.save_database()
             return True
         except Exception as e:
@@ -60,7 +62,8 @@ class FaceDatabase:
     def save_database(self):
         data = {
             "encodings": self.known_encodings,
-            "names": self.known_names
+            "names": self.known_names,
+            'wanted': self.known_wanted
         }
         with open(self.encodings_file, "wb") as f:
             pickle.dump(data, f)
@@ -72,6 +75,7 @@ class FaceDatabase:
                     data = pickle.load(f)
                     self.known_encodings = [np.array(e) for e in data["encodings"]]
                     self.known_names = data["names"]
+                    self.known_wanted = data.get('wanted', [])
             except Exception as e:
                 print(f"Error loading database: {e}")
 
@@ -86,6 +90,39 @@ class FaceRecognizer:
         self.database = database or FaceDatabase()
         self.tolerance = 0.4
         self.model_name = deepface_model_name
+        
+    def compare_with_database(self, encoding):
+        if encoding is None:
+            return "Unknown", 0.0, -1
+
+        if not self.database.known_encodings:
+            return "Unknown", 0.0, -1
+
+        distances = []
+        for db_enc in self.database.known_encodings:
+            db_e = np.array(db_enc).astype(np.float64)
+            enc = np.array(encoding).astype(np.float64)
+
+            norm_prod = np.linalg.norm(db_e) * np.linalg.norm(enc)
+            if norm_prod == 0:
+                distances.append(np.inf)
+                continue
+
+            cos_sim = np.dot(db_e, enc) / norm_prod
+            cos_dist = 1 - cos_sim
+            distances.append(cos_dist)
+
+        distances = np.array(distances)
+        min_idx = np.argmin(distances)
+        min_distance = distances[min_idx]
+
+        if min_distance < self.tolerance:
+            name = self.database.known_names[min_idx]
+            confidence = 1 - min_distance
+            return name, confidence, min_idx
+
+        return "Unknown", 0.0, -1
+
 
     def detect_and_recognize_faces(
         self,
@@ -98,7 +135,6 @@ class FaceRecognizer:
             "face_locations": [],
             "face_encodings": []
         }
-
         yolo_results = self.yolo_model(image, conf=confidence_threshold)
         detections = yolo_results[0].boxes
 
@@ -146,9 +182,13 @@ class FaceRecognizer:
 
         if self.database.known_encodings:
             for encoding in face_encodings:
-                if encoding is None:
-                    results["recognized"].append(("Unknown", 0.0))
-                    continue
+                name, confidence, index = self.compare_with_database(encoding)
+                wanted = False
+                
+                if index != -1 and len(self.database.known_wanted) > index:
+                    wanted = self.database.known_wanted[index]
+
+                results["recognized"].append((name, confidence, wanted))
 
                 distances = []
                 for db_enc in self.database.known_encodings:
@@ -176,34 +216,64 @@ class FaceRecognizer:
                 if min_distance < self.tolerance:
                     name = self.database.known_names[min_idx]
                     confidence = 1 - min_distance
-                    results["recognized"].append((name, confidence))
+                    results["recognized"].append((name, confidence, min_idx))
                 else:
-                    results["recognized"].append(("Unknown", 0.0))
+                    results["recognized"].append(("Unknown", 0.0, -1))
+
         else:
             results["recognized"] = [("Unknown", 0.0)] * len(face_encodings)
 
         return results
-
     def draw_results(self, image: np.ndarray, detection_results: Dict) -> np.ndarray:
         output = image.copy()
 
-        for i, (face_loc, (name, confidence)) in enumerate(
-            zip(detection_results["face_locations"], detection_results["recognized"])
+        for face_loc, (name, confidence, wanted) in zip(
+            detection_results["face_locations"], 
+            detection_results["recognized"]
         ):
             y1, x2, y2, x1 = face_loc
 
-            color = (0, 255, 0) if name != "Unknown" else (0, 0, 255)
+            if name == "Unknown":
+                color = (0, 255, 255)   # Amarelo
+                label = "Desconhecido"
+            else:
+                if wanted:
+                    color = (0, 0, 255)  # Vermelho
+                    label = f"{name} ({confidence:.2f}) [WANTED]"
+                else:
+                    color = (0, 255, 0)  
+                    label = f"{name} ({confidence:.2f})"
+
             cv2.rectangle(output, (x1, y1), (x2, y2), color, 2)
 
-            label = f"{name} ({confidence:.2f})" if name != "Unknown" else 'Desconhecido'
             cv2.putText(
                 output,
                 label,
                 (x1, y1 - 10),
                 cv2.FONT_HERSHEY_SIMPLEX,
-                0.9,
+                0.6,
                 color,
                 2
             )
 
         return output
+
+    def recognize(self, image_array, tolerance=0.4):
+        detections = self.detect_and_recognize_faces(image_array)
+
+        results = []
+        for det in detections["recognized"]:
+            name, confidence, index = det
+
+            if index != -1:
+                wanted = self.database.known_wanted[index]
+            else:
+                wanted = False
+
+            results.append({
+                "name": name,
+                "confidence": confidence,
+                "wanted": wanted
+            })
+
+        return results
