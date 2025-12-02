@@ -37,21 +37,3 @@ uvicorn app:app --reload --host 0.0.0.0 --port 8000
 ```
 
 3. Abra `http://localhost:8000` e teste as funcionalidades: enviar imagens, marcar como procurado, etc.
-
-## Observações e recomendações
-- Se o `known_faces` já estava commitado, remova do Git com:
-
-```powershell
-git rm -r --cached known_faces
-git commit -m "Remove known_faces and add to .gitignore"
-```
-
-- Teste o fluxo de adição de rosto e de marcação/desmarcação de procurado.
-- Caso utilize um ambiente sem GPU, o `ultralytics` e `deepface` poderão usar CPU e demorar mais.
-
-Se quiser, posso continuar e:
-- Adicionar um botão para baixar a imagem anotada.
-- Adicionar um painel com o histórico de reconhecimentos por pessoa.
-- Adicionar testes automatizados e integração contínua para evitar regressões.
-
-💡 Observação: não rode o serviço como root/administrador em servidores públicos sem as devidas adaptações de segurança.
