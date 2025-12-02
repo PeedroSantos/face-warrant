@@ -1,7 +1,3 @@
-Aqui está o **README.md** atualizado, bonito, claro, didático e já com todos os autores do grupo listados corretamente.  
-É só copiar e colar direto no repositório!
-
-```markdown
 # Face-Warrant
 
 **Sistema de Reconhecimento Facial com Alerta de Procurados**  
@@ -100,7 +96,6 @@ Pronto! A interface já estará funcionando.
 Abra uma **Issue** aqui no repositório que a gente responde o mais rápido possível.
 
 Divirtam-se e bom estudo!
-```
 
 É só salvar como `README.md` na raiz do projeto que o GitHub já vai renderizar tudo bonitinho com a tabela de autores e tudo mais.
 
