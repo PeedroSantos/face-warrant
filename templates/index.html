@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Reconhecimento Facial</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-left">
+                <h1>🛡️ Face-Warrant</h1>
+                <p>Sistema de Reconhecimento de Procurados • Integrado ao backend FastAPI</p>
+            </div>
+                <div style="display:flex;align-items:center;gap:12px">
+                <div class="warrant-stamp">PROCURADO</div>
+            </div>
+        </header>
+
+        <main class="mainContent">
+            
+            <!-- COMPONENT: AddKnownFaceCard -->
+            <section class="section" style="grid-column: span 6;">
+                <h2>➕ Adicionar Rosto Conhecido</h2>
+                <!-- Nota: integração com backend: POST /api/add-known-face
+                     FormData esperado: name, file (image), wanted (bool)
+                     Retorno esperado (EXATO): {status: 'success'|'error', message }
+                     A UI já consome esses campos sem alterações ao backend. -->
+                <div class="formGroup">
+                    <label for="faceNameInput">Nome da Pessoa:</label>
+                    <input type="text" id="faceNameInput" placeholder="Digite o nome da pessoa">
+                </div>
+                <div class="formGroup">
+                    <label><input type="checkbox" id="faceWantedInput"> <strong>Marcar como PROCURADO</strong></label>
+                </div>
+                <div class="formGroup">
+                    <label for="faceImageInput">Selecionar Imagem:</label>
+                    <input type="file" id="faceImageInput" accept="image/*">
+                </div>
+                <div class="preview-area" id="addFacePreview" aria-hidden="true"></div>
+                <button class="btn btn-primary" onclick="addKnownFace()">Adicionar ao Banco de Dados</button>
+                <div id="addFaceStatus" class="status-message"></div>
+                <div class="spinner" id="addFaceSpinner"></div>
+            </section>
+
+            
+            <!-- COMPONENT: RecognizeImageCard -->
+            <section class="section" style="grid-column: span 6;">
+                <h2>🖼️ Reconhecer Imagem</h2>
+                <div class="formGroup">
+                    <label for="recognizeImageInput">Selecionar Imagem:</label>
+                    <input type="file" id="recognizeImageInput" accept="image/*">
+                </div>
+                 <!-- Nota: integração com backend: POST /api/recognize-image
+                     Retorno esperado (EXATO): { status, total_faces, faces: [{name, confidence, wanted, box}], image: dataURL }
+                     O front-end consome exatamente esses campos abaixo. -->
+                 <div class="preview-area" id="recognizeImagePreview" aria-hidden="true"></div>
+                <button class="btn btn-primary" onclick="recognizeImage()">Reconhecer Rostos</button>
+                <div id="imageStatus" class="status-message"></div>
+                <div class="spinner" id="imageSpinner"></div>
+                <div id="imageResults"></div>
+            </section>
+
+            
+            <!-- COMPONENT: RecognizeVideoCard -->
+            <section class="section" style="grid-column: span 6;">
+                <h2>🎬 Reconhecer Vídeo</h2>
+                <div class="formGroup">
+                    <label for="recognizeVideoInput">Selecionar Vídeo:</label>
+                    <input type="file" id="recognizeVideoInput" accept="video/*">
+                </div>
+                 <button class="btn btn-primary" onclick="recognizeVideo()">Reconhecer Rostos no Vídeo</button>
+                 <!-- Nota: integração com backend: POST /api/recognize-video
+                     Retorno esperado (EXATO): { status, total_frames, recognized_faces: [{name, count, wanted}], total_recognized, video_url, video_static_url }
+                     A lógica do front-end está preparada para usar video_static_url e tentar baixar o Blob para exibir. -->
+                <div id="videoStatus" class="status-message"></div>
+                <div class="spinner" id="videoSpinner"></div>
+                <div id="videoResults"></div>
+            </section>
+
+            
+            <!-- COMPONENT: WebcamCard -->
+            <section class="section" style="grid-column: span 6;">
+                <h2>📹 Reconhecimento por Webcam</h2>
+                <div class="webcam-container">
+                    <img id="webcamStream" class="hidden max-full rounded" alt="Server webcam stream">
+                    <p class="muted small">Esta transmissão é da câmera do servidor (não do seu dispositivo local). Se você quiser usar a câmera do navegador, a aplicação precisa de uma implementação do lado do cliente usando getUserMedia.</p>
+                    <div id="cameraStatus" class="status-message info hidden">
+                        Inicializando câmera...
+                    </div>
+                </div>
+                <button class="btn btn-primary" id="webcamBtn" onclick="startWebcam()">Iniciar Webcam</button>
+                <button class="btn btn-danger hidden" id="stopWebcamBtn" onclick="stopWebcam()">Parar Webcam</button>
+            </section>
+
+            
+            <!-- COMPONENT: KnownFacesCard -->
+            <section class="section" style="grid-column: span 4;">
+                <h2>👥 Rostos Conhecidos</h2>
+                <button class="btn btn-secondary btn-small" onclick="loadKnownFaces()">Atualizar Lista</button>
+                <div id="knownFacesList" class="known-faces-list">
+                    <p class="muted">Nenhum rosto carregado ainda. Adicione um rosto para começar!</p>
+                </div>
+                <button class="btn btn-danger btn-small" onclick="clearDatabase()">Limpar Todos os Rostos</button>
+                <!-- Nota: integração com backend: POST /api/clear-database e GET /api/known-faces -->
+                <div id="dbStatus" class="status-message"></div>
+            </section>
+
+            
+            <!-- COMPONENT: SystemStatusCard -->
+            <section class="section" style="grid-column: span 8;">
+                <h2>⚙️ Status do Sistema</h2>
+                <button class="btn btn-secondary btn-small" onclick="checkHealth()">Verificar Status</button>
+                <button class="btn btn-small" id="healthConfigBtn" title="Configurar status" onclick="toggleHealthConfig()">⚙️</button>
+                <div id="healthStatus" class="health-box">
+                    <div id="healthSpinner" class="spinner" style="display: none"></div>
+                    <div id="healthSimple" class="health-simple">
+                        <div id="statusBadge" class="status-badge muted">Desconhecido</div>
+                        <div id="healthChips" class="health-chips">
+                                <span class="status-chip" data-type="faces"><span class="chip-icon">👥</span><strong id="facesChip">0</strong><span class="chip-label">Rostos</span></span>
+                                <span class="status-chip" data-type="webcam"><span class="chip-icon">📷</span><strong id="webcamChip">Desconhecido</strong><span class="chip-label">Webcam</span></span>
+                                <span class="status-chip" data-type="db"><span class="chip-icon">💾</span><strong id="dbChip">Desconhecido</strong><span class="chip-label">BD</span></span>
+                                <span class="status-chip" data-type="model"><span class="chip-icon">🧠</span><strong id="modelChip">N/A</strong><span class="chip-label">Modelo</span></span>
+                                <span class="status-chip" data-type="disk"><span class="chip-icon">🗄️</span><strong id="diskChip">N/A</strong><span class="chip-label">Disco</span></span>
+                                <span class="status-chip" data-type="uptime"><span class="chip-icon">⏱️</span><strong id="uptimeChip">N/A</strong><span class="chip-label">Tempo Ativo</span></span>
+                        </div>
+                        <div id="healthMetrics" class="health-metrics">
+                            <div class="metric">
+                                <label>CPU</label>
+                                <div class="metric-bar" id="cpuBar"><div class="metric-bar-fill" id="cpuFill" style="width:0%"></div></div>
+                            </div>
+                            <div class="metric">
+                                <label>Memória</label>
+                                <div class="metric-bar" id="memBar"><div class="metric-bar-fill" id="memFill" style="width:0%"></div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Config dropdown for showing chips / icon-only mode -->
+                    <div id="healthConfig" class="health-config hidden">
+                        <label><input type="checkbox" id="cfg_faces"> Rostos</label><br>
+                        <label><input type="checkbox" id="cfg_webcam"> Webcam</label><br>
+                        <label><input type="checkbox" id="cfg_db"> BD</label><br>
+                        <label><input type="checkbox" id="cfg_model"> Modelo</label><br>
+                        <label><input type="checkbox" id="cfg_disk"> Disco</label><br>
+                        <label><input type="checkbox" id="cfg_uptime"> Tempo Ativo</label><br>
+                        <label style="display:block;margin-top:8px"><input type="checkbox" id="cfg_icon_only"> Icon-only</label>
+                    </div>
+                    <div id="healthText" class="mt-10 muted small">Clique em 'Verificar Status' para obter informações do sistema</div>
+                </div>
+            </section>
+
+            
+            <section class="section full-width" style="grid-column: 1 / -1;">
+                <h2>ℹ️ Como Usar</h2>
+                <div class="infoSection">
+                    <h4>🚀 Início Rápido:</h4>
+                    <ul>
+                        <li><strong>Adicionar Rostos Conhecidos:</strong> Envie uma foto nítida da pessoa e atribua um nome. O sistema aprenderá esse rosto.</li>
+                        <li><strong>Reconhecer Imagem:</strong> Envie uma imagem e o sistema detectará e identificará todos os rostos.</li>
+                        <li><strong>Reconhecer Vídeo:</strong> Envie um arquivo de vídeo para analisar e encontrar rostos reconhecidos ao longo dele.</li>
+                        <li><strong>Webcam Ao Vivo:</strong> Inicie a webcam para detecção e reconhecimento facial em tempo real.</li>
+                    </ul>
+                </div>
+                <div class="infoSection">
+                    <h4>💡 Dicas:</h4>
+                    <ul>
+                        <li>Adicione várias fotos da mesma pessoa para melhorar a precisão do reconhecimento.</li>
+                        <li>Garanta boa iluminação ao adicionar rostos ao banco de dados.</li>
+                        <li>O sistema funciona melhor com imagens nítidas e de rosto frontal.</li>
+                        <li>A qualidade do processamento melhora com imagens de treinamento mais diversas.</li>
+                    </ul>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // File input preview handlers
+    document.getElementById('faceImageInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    document.getElementById('addFacePreview').innerHTML = 
+                        `<img class="max-full rounded" src="${event.target.result}" alt="Preview">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        document.getElementById('recognizeImageInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    document.getElementById('recognizeImagePreview').innerHTML = 
+                        `<img class="max-full rounded" src="${event.target.result}" alt="Preview">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Add Known Face
+        async function addKnownFace() {
+            const name = document.getElementById('faceNameInput').value.trim();
+            const file = document.getElementById('faceImageInput').files[0];
+            const statusDiv = document.getElementById('addFaceStatus');
+            const spinner = document.getElementById('addFaceSpinner');
+
+            if (!name) {
+                showStatus(statusDiv, 'Por favor, insira um nome', 'error');
+                return;
+            }
+
+            if (!file) {
+                showStatus(statusDiv, 'Por favor, selecione uma imagem', 'error');
+                return;
+            }
+
+            spinner.style.display = 'block';
+            const formData = new FormData();
+            formData.append('name', name);
+            formData.append('file', file);
+            const wantedChecked = document.getElementById('faceWantedInput').checked;
+            formData.append('wanted', wantedChecked);
+
+            try {
+                // usar aqui a função real do backend: POST /api/add-known-face
+                const response = await fetch('/api/add-known-face', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    showStatus(statusDiv, translateApiMessage(data.message || data.detail || 'Rosto adicionado'), 'success');
+                    document.getElementById('faceNameInput').value = '';
+                    document.getElementById('faceImageInput').value = '';
+                    document.getElementById('addFacePreview').innerHTML = '';
+                    await loadKnownFaces();
+                } else {
+                    showStatus(statusDiv, translateApiMessage(data.detail) || 'Erro ao adicionar rosto', 'error');
+                }
+            } catch (error) {
+                showStatus(statusDiv, 'Erro: ' + error.message, 'error');
+            } finally {
+                spinner.style.display = 'none';
+            }
+        }
+
+        // Recognize Image
+        async function recognizeImage() {
+            const file = document.getElementById('recognizeImageInput').files[0];
+            const statusDiv = document.getElementById('imageStatus');
+            const spinner = document.getElementById('imageSpinner');
+            const resultsDiv = document.getElementById('imageResults');
+
+            if (!file) {
+                showStatus(statusDiv, 'Por favor, selecione uma imagem', 'error');
+                return;
+            }
+
+            spinner.style.display = 'block';
+            resultsDiv.innerHTML = '';
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                // usar aqui a função real do backend: POST /api/recognize-image
+                const response = await fetch('/api/recognize-image', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showStatus(statusDiv, `Encontrado(s) ${data.total_faces} rosto(s)`, 'success');
+                    displayImageResults(data, resultsDiv);
+                } else {
+                    showStatus(statusDiv, translateApiMessage(data.detail) || 'Erro ao reconhecer imagem', 'error');
+                }
+            } catch (error) {
+                showStatus(statusDiv, 'Erro: ' + error.message, 'error');
+            } finally {
+                spinner.style.display = 'none';
+            }
+        }
+
+        // Recognize Video
+        async function recognizeVideo() {
+            const file = document.getElementById('recognizeVideoInput').files[0];
+            const statusDiv = document.getElementById('videoStatus');
+            const spinner = document.getElementById('videoSpinner');
+            const resultsDiv = document.getElementById('videoResults');
+
+            if (!file) {
+                showStatus(statusDiv, 'Por favor, selecione um vídeo', 'error');
+                return;
+            }
+
+            spinner.style.display = 'block';
+            resultsDiv.innerHTML = '';
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                // usar aqui a função real do backend: POST /api/recognize-video
+                const response = await fetch('/api/recognize-video', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showStatus(statusDiv, `Processados ${data.total_frames} quadros`, 'success');
+                    await displayVideoResults(data, resultsDiv);
+                } else {
+                    showStatus(statusDiv, translateApiMessage(data.detail) || 'Erro ao reconhecer vídeo', 'error');
+                }
+            } catch (error) {
+                showStatus(statusDiv, 'Erro: ' + error.message, 'error');
+            } finally {
+                spinner.style.display = 'none';
+            }
+        }
+
+        // Webcam Stream
+        let webcamStreaming = false;
+
+        async function startWebcam() {
+            const stream = document.getElementById('webcamStream');
+            const cameraStatus = document.getElementById('cameraStatus');
+            const webcamBtn = document.getElementById('webcamBtn');
+            const stopBtn = document.getElementById('stopWebcamBtn');
+
+            // Toggle classes instead of inline styles so the `.hidden` CSS rule with !important works properly
+            webcamBtn.classList.add('hidden');
+            stopBtn.classList.remove('hidden');
+            stream.classList.remove('hidden');
+            cameraStatus.classList.remove('hidden');
+            cameraStatus.classList.remove('error');
+            cameraStatus.classList.add('info');
+            cameraStatus.textContent = 'Inicializando câmera...';
+
+            // Attach error and load handlers
+            stream.onerror = () => {
+                cameraStatus.classList.remove('info');
+                cameraStatus.classList.add('error');
+                cameraStatus.textContent = 'Falha ao iniciar webcam. A câmera do servidor pode estar indisponível.';
+                // Restore UI
+                stream.classList.add('hidden');
+                webcamBtn.classList.remove('hidden');
+                stopBtn.classList.add('hidden');
+                webcamStreaming = false;
+            };
+            stream.onload = () => {
+                cameraStatus.classList.remove('info');
+                cameraStatus.classList.add('success');
+                cameraStatus.textContent = 'Webcam transmitindo.';
+            };
+
+            try {
+                // Check availability first to provide friendlier error feedback
+                // usar aqui a função real do backend: GET /api/webcam-status
+                const statusResp = await fetch('/api/webcam-status');
+                if (statusResp.ok) {
+                    const statusData = await statusResp.json();
+                    if (!statusData.available) {
+                        throw new Error('Server camera is not available');
+                    }
+                }
+
+                // usar aqui a função real do backend: GET /api/webcam-stream (MJPEG stream)
+                stream.src = '/api/webcam-stream';
+                webcamStreaming = true;
+            } catch (error) {
+                cameraStatus.className = 'status-message error';
+                cameraStatus.textContent = 'Erro: ' + error.message;
+                // Restore UI
+                stream.classList.add('hidden');
+                webcamBtn.classList.remove('hidden');
+                stopBtn.classList.add('hidden');
+                webcamStreaming = false;
+            }
+        }
+
+        async function stopWebcam() {
+            const stream = document.getElementById('webcamStream');
+            const cameraStatus = document.getElementById('cameraStatus');
+            const webcamBtn = document.getElementById('webcamBtn');
+            const stopBtn = document.getElementById('stopWebcamBtn');
+
+            try {
+                // usar aqui a função real do backend: POST /api/stop-webcam
+                await fetch('/api/stop-webcam', { method: 'POST' });
+                stream.src = '';
+                stream.onerror = null;
+                stream.onload = null;
+                stream.classList.add('hidden');
+                cameraStatus.classList.add('hidden');
+                webcamStreaming = false;
+                webcamBtn.classList.remove('hidden');
+                stopBtn.classList.add('hidden');
+            } catch (error) {
+                console.error('Error stopping webcam:', error);
+            }
+        }
+
+        // Load Known Faces
+        async function loadKnownFaces() {
+            try {
+                // usar aqui a função real do backend: GET /api/known-faces
+                const response = await fetch('/api/known-faces');
+                const data = await response.json();
+                const list = document.getElementById('knownFacesList');
+                if (data.count === 0) {
+                    list.innerHTML = '<p class="muted">Nenhum rosto no banco de dados. Adicione um rosto para começar!</p>';
+                } else {
+                    list.innerHTML = data.known_faces
+                                .map(item => {
+                                    const wantedBadge = item.wanted ? `<span class="wanted-badge">PROCURADO</span>` : '';
+                                    const escapedName = (item.name || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, "\\n");
+                                    const actionBtn = `<button class="btn btn-small" onclick="toggleWanted('${escapedName}', ${item.wanted ? 'false' : 'true'})">${item.wanted ? 'Desmarcar' : 'Marcar'}</button>`;
+                                    return `<div class="face-badge">${item.name} ${wantedBadge} ${actionBtn}</div>`
+                        })
+                        .join('');
+                }
+            } catch (error) {
+                console.error('Error loading known faces:', error);
+            }
+        }
+
+        // Clear Database
+        async function clearDatabase() {
+            if (confirm('Tem certeza que deseja excluir todos os rostos conhecidos? Isso não pode ser desfeito!')) {
+                try {
+                    // usar aqui a função real do backend: POST /api/clear-database
+                    const response = await fetch('/api/clear-database', { method: 'POST' });
+                    const data = await response.json();
+                    showStatus(document.getElementById('dbStatus'), translateApiMessage(data.message), 'success');
+                    await loadKnownFaces();
+                } catch (error) {
+                    showStatus(document.getElementById('dbStatus'), 'Erro: ' + error.message, 'error');
+                }
+            }
+        }
+
+        async function toggleWanted(name, wanted) {
+            try {
+                const formData = new FormData();
+                formData.append('name', name);
+                // Ensure boolean is sent as a string 'true'/'false' so FastAPI parses reliably
+                formData.append('wanted', String(wanted));
+                // usar aqui a função real do backend: POST /api/set-wanted
+                const resp = await fetch('/api/set-wanted', { method: 'POST', body: formData });
+                const data = await resp.json();
+                if (resp.ok) {
+                    showStatus(document.getElementById('dbStatus'), translateApiMessage(data.message), 'success');
+                } else {
+                    showStatus(document.getElementById('dbStatus'), translateApiMessage(data.detail) || data.message || 'Erro', 'error');
+                }
+                await loadKnownFaces();
+            } catch (err) {
+                showStatus(document.getElementById('dbStatus'), 'Erro: ' + err.message, 'error');
+            }
+        }
+
+        // Health Check
+        async function checkHealth() {
+            const healthText = document.getElementById('healthText');
+            const spinner = document.getElementById('healthSpinner');
+            const statusBadge = document.getElementById('statusBadge');
+            const facesChip = document.getElementById('facesChip');
+            const webcamChip = document.getElementById('webcamChip');
+            const dbChip = document.getElementById('dbChip');
+            const modelChip = document.getElementById('modelChip');
+            const diskChip = document.getElementById('diskChip');
+            const uptimeChip = document.getElementById('uptimeChip');
+            const cpuFill = document.getElementById('cpuFill');
+            const memFill = document.getElementById('memFill');
+            try {
+                spinner.style.display = 'block';
+                healthText.textContent = 'Checking system...';
+                // usar aqui a função real do backend: GET /api/health
+                const response = await fetch('/api/health');
+                const data = await response.json();
+                // Format uptime HH:MM:SS
+                const uptimeSec = Math.floor(data.uptime_seconds || 0);
+                const hh = String(Math.floor(uptimeSec / 3600)).padStart(2, '0');
+                const mm = String(Math.floor((uptimeSec % 3600) / 60)).padStart(2, '0');
+                const ss = String(uptimeSec % 60).padStart(2, '0');
+                const uptime = `${hh}:${mm}:${ss}`;
+
+                const summary = data.simple || {};
+                const statusText = summary.ok ? '✓ OK' : (data.status === 'ok' ? '✓ OK' : '✗ ' + (data.status || 'desconhecido'));
+                    const facesText = data.known_faces || 0;
+                const cpuVal = (data.cpu_percent !== null && data.cpu_percent !== undefined) ? Math.round(Math.max(0, Math.min(100, data.cpu_percent))) : null;
+                const memVal = (data.memory_percent !== null && data.memory_percent !== undefined) ? Math.round(Math.max(0, Math.min(100, data.memory_percent))) : null;
+                const webcamText = data.webcam_available ? 'Yes' : 'No';
+
+                // Update simpler visual elements
+                if (summary.ok) {
+                    statusBadge.className = 'status-badge ok';
+                    statusBadge.textContent = 'OK';
+                } else {
+                    statusBadge.className = data.status === 'ok' ? 'status-badge ok' : 'status-badge err';
+                    statusBadge.textContent = data.status === 'ok' ? 'OK' : 'ERRO';
+                }
+                facesChip.textContent = facesText;
+                webcamChip.textContent = webcamText;
+                dbChip.textContent = data.database_loaded ? 'Yes' : 'No';
+                modelChip.textContent = data.model ? (data.model.length > 24 ? data.model.slice(0,21) + '...' : data.model) : 'N/A';
+                diskChip.textContent = data.disk_free_gb !== null && data.disk_free_gb !== undefined ? `${data.disk_free_gb} GB` : 'N/A';
+                uptimeChip.textContent = summary.uptime || uptime || 'N/A';
+                // Set fills (bounded 0..100)
+                if (cpuVal !== null) {
+                    cpuFill.style.width = cpuVal + '%';
+                    cpuFill.style.background = cpuVal > 80 ? '#dc3545' : cpuVal > 60 ? '#ffc107' : '#28a745';
+                    cpuFill.title = `${cpuVal}%`;
+                } else {
+                    cpuFill.style.width = '0%';
+                    cpuFill.title = 'N/A';
+                }
+                if (memVal !== null) {
+                    memFill.style.width = memVal + '%';
+                    memFill.style.background = memVal > 80 ? '#dc3545' : memVal > 60 ? '#ffc107' : '#28a745';
+                    memFill.title = `${memVal}%`;
+                } else {
+                    memFill.style.width = '0%';
+                    memFill.title = 'N/A';
+                }
+                // Set a very brief human-friendly health text (compact)
+                healthText.innerHTML = `${statusText} • Faces: ${facesText}`;
+            } catch (error) {
+                healthText.className = 'status-message error';
+                healthText.textContent = 'Erro: ' + (error.message || String(error));
+            } finally {
+                spinner.style.display = 'none';
+            }
+        }
+
+        // Helper Functions
+        function translateApiMessage(msg) {
+            if (!msg) return msg;
+            // Common backend responses mapping
+            if (msg.startsWith("Face for '") && msg.endsWith('added successfully')) {
+                const parts = msg.split("'");
+                const name = parts[1] || '';
+                return `Rosto para '${name}' adicionado com sucesso`;
+            }
+            if (msg.includes('No face detected')) return 'Nenhum rosto detectado na imagem';
+            if (msg.includes('Updated wanted status')) return 'Status de procurado atualizado com sucesso';
+            if (msg.includes('Database cleared')) return 'Banco de dados limpo';
+            if (msg.includes('Invalid image file')) return 'Arquivo de imagem inválido';
+            if (msg.includes('Camera not available')) return 'Câmera não disponível no servidor';
+            if (msg.includes('Video not found')) return 'Vídeo não encontrado';
+            return msg;
+        }
+        function showStatus(element, message, type) {
+            element.textContent = message;
+            element.className = `status-message ${type}`;
+        }
+
+        function displayImageResults(data, container) {
+            // Espera exato retorno do backend: data.total_faces, data.faces [{name, confidence, wanted, box}], data.image (base64)
+            const faces = data.faces || [];
+                const facesHtml = faces.map(f => {
+                const name = f.name === 'Unknown' ? 'Desconhecido' : f.name;
+                const conf = Math.round((f.confidence || 0) * 100);
+                const wanted = !!f.wanted;
+                const badge = wanted ? `<span class="wanted-label">PROCURADO</span>` : `<span class="clear-label">CLARO</span>`;
+                // If backend provides a bounding box (x,y,w,h), show it as complementary data
+                const boxHtml = f.box ? `<div class="muted small">Box: x=${f.box.x}, y=${f.box.y}, w=${f.box.w}, h=${f.box.h}</div>` : '';
+                return `<div class="recognized-face ${wanted ? 'wanted' : 'clear'}">
+                            <div>
+                                <div class="name">${name}</div>
+                                <div class="confidence">(${conf}% confiança)</div>
+                                ${badge}
+                                ${boxHtml}
+                            </div>
+                        </div>`;
+            }).join('') || '<p class="muted">Nenhum rosto detectado</p>';
+
+            const html = `
+                <div class="results-container">
+                    <h3>Resultados</h3>
+                    <p><strong>Total de Rostos Detectados:</strong> ${data.total_faces}</p>
+                    <div>
+                        ${facesHtml}
+                    </div>
+                    <h4 class="section-title">Imagem Anotada:</h4>
+                    <img class="max-full rounded mt-10" src="${data.image}">
+                </div>
+            `;
+            container.innerHTML = html;
+        }
+
+        async function displayVideoResults(data, container) {
+            // Espera exato retorno do backend: data.total_frames, data.total_recognized, data.recognized_faces [{name,count,wanted}], data.video_static_url
+                const html = `
+                <div class="results-container">
+                    <h3>Resultados da Análise de Vídeo</h3>
+                    <p><strong>Total de Quadros:</strong> ${data.total_frames}</p>
+                    <p><strong>Total de Rostos Reconhecidos:</strong> ${data.total_recognized}</p>
+                    <h4 class="section-title">Pessoas Reconhecidas:</h4>
+                    ${(!data.recognized_faces || data.recognized_faces.length === 0) ? 
+                        '<p class="muted">Nenhum rosto reconhecido encontrado no vídeo</p>' :
+                        data.recognized_faces.map(obj => `
+                            <div class="recognized-face ${obj.wanted ? 'wanted' : 'clear'}">
+                                <span class="name">${obj.name === 'Unknown' ? 'Desconhecido' : obj.name}</span>
+                                <span class="confidence">${obj.count} detecção${obj.count !== 1 ? 's' : ''}</span>
+                                ${obj.wanted ? `<span class="wanted-label">PROCURADO</span>` : ''}
+                            </div>
+                        `).join('')
+                    }
+                    <h4 class="section-title">Vídeo Anotado:</h4>
+                    <video id="resultVideo" width="100%" controls preload="metadata" class="rounded mt-10">Seu navegador não suporta a tag de vídeo.</video>
+                    <div class="mt-10">
+                        <a id="videoStaticLink" href="" target="_blank">Abrir vídeo em nova aba (fallback)</a>
+                    </div>
+                </div>
+            `;
+            container.innerHTML = html;
+
+            // Try fetching the video as a Blob and use Object URL for playback.
+            // This provides a fallback if the browser isn't making range requests properly.
+            try {
+                console.log('Video URL (API):', data.video_url, 'Static URL:', data.video_static_url);
+                const resp = await fetch(data.video_static_url);
+                if (resp.ok) {
+                    const blob = await resp.blob();
+                    const videoEl = container.querySelector('#resultVideo');
+                    const url = URL.createObjectURL(blob);
+                    if (videoEl) {
+                        console.log('Fetched video blob with content-type', resp.headers.get('content-type'));
+                        videoEl.src = url;
+                        videoEl.onerror = () => { console.error('Video element error', videoEl.error); };
+                        videoEl.onloadedmetadata = () => { console.log('video duration:', videoEl.duration, 'width', videoEl.videoWidth, 'height', videoEl.videoHeight); };
+                    }
+                const link = container.querySelector('#videoStaticLink');
+                if (link) { link.href = data.video_static_url; }
+                } else {
+                    console.error('Failed to fetch video', resp.status, resp.statusText);
+                    // Try setting static URL directly as the src (no blob)
+                    const videoEl = container.querySelector('#resultVideo');
+                    if (videoEl) {
+                        videoEl.src = data.video_static_url;
+                        console.warn('Used static URL as fallback for playback');
+                    }
+                }
+            } catch (err) {
+                console.error('Error loading video blob:', err);
+            }
+        }
+
+        // Load known faces on page load
+        window.addEventListener('load', () => {
+            loadKnownFaces();
+            checkHealth();
+            initHealthConfig();
+        });
+
+        function toggleHealthConfig() {
+            const cfg = document.getElementById('healthConfig');
+            if (cfg.classList.contains('hidden')) {
+                cfg.classList.remove('hidden');
+            } else {
+                cfg.classList.add('hidden');
+            }
+        }
+
+        function initHealthConfig(){
+            const cfgMap = ['faces','webcam','db','model','disk','uptime'];
+            const saved = JSON.parse(localStorage.getItem('healthConfig') || '{}');
+            cfgMap.forEach(k => {
+                const box = document.getElementById('cfg_' + k);
+                if (!box) return;
+                box.checked = saved[k] !== undefined ? saved[k] : true;
+                box.addEventListener('change', () => saveAndApplyConfig(cfgMap));
+            });
+            const iconBox = document.getElementById('cfg_icon_only');
+            const iconOnlySaved = saved['icon_only'] || false;
+            iconBox.checked = iconOnlySaved;
+            iconBox.addEventListener('change', () => saveAndApplyConfig(cfgMap));
+            applyConfigToUI(saved, cfgMap, iconOnlySaved);
+        }
+
+        function saveAndApplyConfig(cfgMap){
+            const cfg = {};
+            cfgMap.forEach(k => { cfg[k] = document.getElementById('cfg_' + k).checked });
+            cfg.icon_only = document.getElementById('cfg_icon_only').checked;
+            localStorage.setItem('healthConfig', JSON.stringify(cfg));
+            applyConfigToUI(cfg, cfgMap, cfg.icon_only);
+        }
+
+        function applyConfigToUI(cfg, cfgMap, iconOnly){
+            // Toggle chips
+            cfgMap.forEach(k => {
+                const chip = document.querySelector(`.status-chip[data-type="${k}"]`);
+                if (!chip) return;
+                if (cfg && cfg[k] === false) {
+                    chip.style.display = 'none';
+                } else {
+                    chip.style.display = 'inline-flex';
+                }
+            });
+            // Toggle icon-only mode
+            const simple = document.getElementById('healthSimple');
+            if (iconOnly) {
+                simple.classList.add('icon-only');
+            } else {
+                simple.classList.remove('icon-only');
+            }
+        }
+    </script>
+</body>
+</html>
