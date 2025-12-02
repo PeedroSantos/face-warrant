@@ -37,7 +37,7 @@ class FaceDatabase:
             print(f"Error adding face: {e}")
             return False
 
-    def add_face_from_array(self, image_array: np.ndarray, name: str) -> bool:
+    def add_face_from_array(self, image_array: np.ndarray, name: str, wanted: bool = False) -> bool:
         try:
             try:
                 img_rgb = cv2.cvtColor(image_array, cv2.COLOR_BGR2RGB)
@@ -53,6 +53,7 @@ class FaceDatabase:
             encoding = np.array(embedding[0]['embedding'])
             self.known_encodings.append(encoding)
             self.known_names.append(name)
+            self.known_wanted.append(wanted)
             self.save_database()
             return True
         except Exception as e:
@@ -80,7 +81,33 @@ class FaceDatabase:
                 print(f"Error loading database: {e}")
 
     def get_all_names(self) -> List[str]:
-        return list(set(self.known_names))
+        # Return a list of dicts: {"name": name, "wanted": bool}
+        result = {}
+        for i, n in enumerate(self.known_names):
+            w = False
+            if i < len(self.known_wanted):
+                w = bool(self.known_wanted[i])
+            if n in result:
+                # if any entry for same person is wanted, keep it wanted
+                result[n] = result[n] or w
+            else:
+                result[n] = w
+        return [{"name": k, "wanted": v} for k, v in result.items()]
+
+    def set_wanted(self, name: str, wanted: bool = True):
+        """
+        Set the wanted flag for all entries with the given name. Returns True if updated at least one entry.
+        """
+        updated = False
+        for i, n in enumerate(self.known_names):
+            if n == name:
+                while i >= len(self.known_wanted):
+                    self.known_wanted.append(False)
+                self.known_wanted[i] = bool(wanted)
+                updated = True
+        if updated:
+            self.save_database()
+        return updated
 
 
 class FaceRecognizer:
@@ -184,44 +211,12 @@ class FaceRecognizer:
             for encoding in face_encodings:
                 name, confidence, index = self.compare_with_database(encoding)
                 wanted = False
-                
                 if index != -1 and len(self.database.known_wanted) > index:
-                    wanted = self.database.known_wanted[index]
-
+                    wanted = bool(self.database.known_wanted[index])
                 results["recognized"].append((name, confidence, wanted))
 
-                distances = []
-                for db_enc in self.database.known_encodings:
-                    if db_enc is None:
-                        distances.append(np.inf)
-                        continue
-                    db_e = np.array(db_enc).astype(np.float64)
-                    enc = np.array(encoding).astype(np.float64)
-                    norm_prod = np.linalg.norm(db_e) * np.linalg.norm(enc)
-                    if norm_prod == 0:
-                        distances.append(np.inf)
-                        continue
-                    cos_sim = np.dot(db_e, enc) / norm_prod
-                    cos_dist = 1 - cos_sim
-                    distances.append(cos_dist)
-                distances = np.array(distances)
-
-                if len(distances) == 0:
-                    results["recognized"].append(("Unknown", 0.0))
-                    continue
-
-                min_idx = np.argmin(distances)
-                min_distance = distances[min_idx]
-
-                if min_distance < self.tolerance:
-                    name = self.database.known_names[min_idx]
-                    confidence = 1 - min_distance
-                    results["recognized"].append((name, confidence, min_idx))
-                else:
-                    results["recognized"].append(("Unknown", 0.0, -1))
-
         else:
-            results["recognized"] = [("Unknown", 0.0)] * len(face_encodings)
+            results["recognized"] = [("Unknown", 0.0, False)] * len(face_encodings)
 
         return results
     def draw_results(self, image: np.ndarray, detection_results: Dict) -> np.ndarray:

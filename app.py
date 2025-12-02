@@ -56,7 +56,7 @@ async def get_home():
 
 
 @app.post("/api/add-known-face")
-async def add_known_face(name: str = Form(...), file: UploadFile = File(...)):
+async def add_known_face(name: str = Form(...), file: UploadFile = File(...), wanted: bool = Form(False)):
     try:
         contents = await file.read()
         file_path = f"uploaded_files/{datetime.now().timestamp()}_{file.filename}"
@@ -81,8 +81,8 @@ async def add_known_face(name: str = Form(...), file: UploadFile = File(...)):
                     face_img = image[y1:y2, x1:x2]
                     print(f"[add_known_face] Cropped face shape: {face_img.shape}, size: {face_img.size}")
                     if face_img.size != 0:
-                        success = db.add_face_from_array(face_img, name)
-                        print(f"[add_known_face] add_face_from_array result: {success}")
+                        success = db.add_face_from_array(face_img, name, wanted)
+                    print(f"[add_known_face] add_face_from_array result: {success}")
         except Exception as e:
             print(f"[add_known_face] YOLO/crop error: {e}")
             success = False
@@ -91,11 +91,11 @@ async def add_known_face(name: str = Form(...), file: UploadFile = File(...)):
             try:
                 print(f"[add_known_face] Trying fallback: full image array")
                 if image is not None:
-                    success = db.add_face_from_array(image, name)
+                    success = db.add_face_from_array(image, name, wanted)
                     print(f"[add_known_face] Fallback result: {success}")
                 else:
                     print(f"[add_known_face] Image is None, trying file path")
-                    success = db.add_face(file_path, name)
+                    success = db.add_face(name, image_path=file_path, wanted=wanted)
                     print(f"[add_known_face] File path result: {success}")
             except Exception as e:
                 print(f"[add_known_face] Fallback error: {e}")
@@ -193,11 +193,23 @@ async def recognize_video(file: UploadFile = File(...)):
             if frame_count % 5 == 0:
                 results = recognizer.detect_and_recognize_faces(frame)
                 
-                for name, conf in results["recognized"]:
+                for rec in results["recognized"]:
+                    # rec expected: (name, confidence, wanted)
+                    try:
+                        name = rec[0]
+                        conf = rec[1]
+                        wanted_flag = bool(rec[2]) if len(rec) > 2 else False
+                    except Exception:
+                        # fallback for unexpected format
+                        continue
+
                     if name != "Unknown":
                         if name not in people_found:
-                            people_found[name] = 0
-                        people_found[name] += 1
+                            people_found[name] = {"count": 0, "wanted": wanted_flag}
+                        people_found[name]["count"] += 1
+                        # If any detection shows wanted, keep it as wanted
+                        if wanted_flag:
+                            people_found[name]["wanted"] = True
                         recognized_count += 1
             else:
                 results = recognizer.detect_and_recognize_faces(frame)
@@ -275,10 +287,12 @@ async def recognize_video(file: UploadFile = File(...)):
             except Exception as e:
                 print(f"Error during optional re-encoding: {e}")
         
+        recognized_list = [{"name": n, "count": v["count"], "wanted": v.get("wanted", False)} for n, v in people_found.items()]
+
         return {
             "status": "success",
             "total_frames": frame_count,
-            "recognized_faces": people_found,
+            "recognized_faces": recognized_list,
             "total_recognized": recognized_count,
             "video_url": f"/api/video/{timestamp}",
             "video_static_url": f"/uploaded_files/{os.path.basename(output_path)}",
@@ -374,6 +388,19 @@ async def get_known_faces():
     return {"known_faces": known, "count": len(known)}
 
 
+@app.post('/api/set-wanted')
+async def set_wanted(name: str = Form(...), wanted: bool = Form(...)):
+    try:
+        updated = db.set_wanted(name, wanted)
+        if updated:
+            return {"status": "success", "message": f"Updated wanted status for {name}"}
+        else:
+            return {"status": "error", "message": f"No matching name {name} found"}
+    except Exception as e:
+        print(f"[set-wanted] Error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @app.get("/api/list-videos")
 async def list_videos():
     files = [f for f in os.listdir("uploaded_files") if f.endswith("_output.mp4")]
@@ -384,6 +411,7 @@ async def list_videos():
 async def clear_database():
     db.known_encodings = []
     db.known_names = []
+    db.known_wanted = []
     db.save_database()
     return {"status": "success", "message": "Database cleared"}
 

@@ -6,7 +6,8 @@
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #1b1b1b 0%, #2c2c2c 100%);
+    color: #eee;
     min-height: 100vh;
     padding: 20px;
 }
@@ -14,17 +15,35 @@ body {
 .container {
     max-width: 1200px;
     margin: 0 auto;
-    background: white;
-    border-radius: 15px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    background: #151515;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
     overflow: hidden;
+    border: 2px solid rgba(255,255,255,0.04);
 }
 
 .header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 30px;
-    text-align: center;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:20px;
+    background: linear-gradient(90deg, #111 0%, #1d1d1d 60%);
+    color: #fff;
+    padding: 26px 30px;
+    border-bottom: 4px solid #8b0000;
+}
+.header-left h1 { margin:0; font-size: 1.8em }
+.header-left p { margin:0; opacity:0.75 }
+.warrant-stamp {
+    display:inline-block;
+    padding:12px 20px;
+    background:#ff0040;
+    color:#fff;
+    font-weight:900;
+    border-radius:6px;
+    transform: rotate(-10deg);
+    box-shadow: 0 5px 18px rgba(255,0,68,0.2);
+    font-size: 1em;
 }
 
 .header h1 {
@@ -34,29 +53,29 @@ body {
 
 .header p {
     font-size: 1.1em;
-    opacity: 0.9;
+    opacity: 0.85;
 }
 
 .mainContent {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 35px;
-    padding: 45px;
+    gap: 30px;
+    padding: 35px;
 }
 
 .section {
-    background: #f8f9fa;
-    padding: 25px;
-    border-radius: 10px;
-    border: 2px solid #e9ecef;
+    background: linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.2) 100%);
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.03);
 }
 
 .section h2 {
-    color: #667eea;
+    color: #fff;
     margin-bottom: 20px;
-    font-size: 1.8em;
-    border-bottom: 3px solid #667eea;
-    padding-bottom: 10px;
+    font-size: 1.4rem;
+    border-bottom: 2px solid rgba(255,255,255,0.04);
+    padding-bottom: 8px;
 }
 
 .formGroup {
@@ -100,8 +119,8 @@ body {
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    background: linear-gradient(90deg, #8b0000 0%, #c40000 100%);
+    color: #fff;
 }
 
 .btn-primary:hover {
@@ -148,9 +167,9 @@ body {
 }
 
 .status-message.success {
-    background: #ffffff;
-    color: #04701d;
-    border: 1px solid #023e10;
+    background: #0a1f10;
+    color: #b2f5b6;
+    border: 1px solid #143b21;
     display: block;
 }
 
@@ -194,10 +213,10 @@ body {
 
 .results-container {
     margin-top: 20px;
-    padding: 15px;
-    background: #ffffff;
-    border-radius: 5px;
-    border-left: 4px solid #667eea;
+    padding: 14px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 6px;
+    border-left: 5px solid #8b0000;
 }
 
 .results-container h3 {
@@ -206,16 +225,25 @@ body {
 }
 
 .recognized-face {
-    background: #e7f3ff;
+    background: rgba(0,0,0,0.5);
     padding: 10px;
     margin: 8px 0;
-    border-radius: 5px;
-    border-left: 4px solid #0066cc;
+    border-radius: 6px;
+    border-left: 4px solid rgba(255,255,255,0.05);
+    display:flex;
+    align-items:center;
+    gap: 10px;
 }
+.recognized-face.wanted { border-left-color: #ff0040; }
+.recognized-face.clear { border-left-color: #00c853; }
 
 .recognized-face .name {
-    font-weight: bold;
-    color: #0066cc;
+    font-weight: 800;
+    color: #fff;
+}
+
+.recognized-face .confidence {
+    color: rgba(255,255,255,0.65);
 }
 
 .recognized-face .confidence {
@@ -273,12 +301,18 @@ body {
 }
 
 .face-badge {
-    background: #667eea;
-    color: white;
+    background: rgba(255,255,255,0.04);
+    color: #fff;
     padding: 8px 12px;
     border-radius: 20px;
     font-size: 0.9em;
+    display:inline-flex;
+    gap:8px;
+    align-items:center;
 }
+.wanted-badge { background: #ff0040; color: white; padding: 3px 8px; border-radius: 8px; font-weight:700; font-size:0.8em }
+.wanted-label { display:inline-block; background: #ff2d3a; color:#fff; padding:3px 8px; border-radius:8px; font-weight:700; font-size:0.8em; margin-left:auto }
+.clear-label { display:inline-block; background: #00c853; color:#fff; padding:3px 8px; border-radius:8px; font-weight:700; font-size:0.8em; margin-left:auto }
 
 /* Utility classes moved from inline styles */
 .hidden { display: none !important; }
@@ -287,7 +321,7 @@ body {
 .mt-10 { margin-top: 10px; }
 .mt-15 { margin-top: 15px; }
 .muted { color: #999; }
-.health-box { margin-top: 15px; padding: 15px; background: white; border-radius: 5px; border-left: 4px solid #667eea; }
+.health-box { margin-top: 15px; padding: 15px; background: rgba(255,255,255,0.02); border-radius: 5px; border-left: 4px solid #8b0000; }
 .section-title { margin-top: 15px; color: #667eea; }
 
 /* Health / System Status styles */

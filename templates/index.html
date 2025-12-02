@@ -9,8 +9,11 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎯 Sistema de Reconhecimento Facial</h1>
-            <p>Alimentado por YOLOv11 e Reconhecimento Facial</p>
+            <div class="header-left">
+                <h1>🛡️ Face-Warrant</h1>
+                <p>Sistema de Reconhecimento de Procurados</p>
+            </div>
+            <div class="warrant-stamp">PROCURADO</div>
         </div>
 
         <div class="mainContent">
@@ -20,6 +23,9 @@
                 <div class="formGroup">
                     <label for="faceNameInput">Nome da Pessoa:</label>
                     <input type="text" id="faceNameInput" placeholder="Digite o nome da pessoa">
+                </div>
+                <div class="formGroup">
+                    <label><input type="checkbox" id="faceWantedInput"> <strong>Marcar como PROCURADO</strong></label>
                 </div>
                 <div class="formGroup">
                     <label for="faceImageInput">Selecionar Imagem:</label>
@@ -198,6 +204,8 @@
             const formData = new FormData();
             formData.append('name', name);
             formData.append('file', file);
+            const wantedChecked = document.getElementById('faceWantedInput').checked;
+            formData.append('wanted', wantedChecked);
 
             try {
                 const response = await fetch('/api/add-known-face', {
@@ -206,9 +214,8 @@
                 });
 
                 const data = await response.json();
-
-                    if (response.ok) {
-                    showStatus(statusDiv, translateApiMessage(data.message), 'success');
+                if (response.ok) {
+                    showStatus(statusDiv, translateApiMessage(data.message || data.detail || 'Rosto adicionado'), 'success');
                     document.getElementById('faceNameInput').value = '';
                     document.getElementById('faceImageInput').value = '';
                     document.getElementById('addFacePreview').innerHTML = '';
@@ -249,7 +256,7 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    showStatus(statusDiv, `Encontrado(s) ${data.data.total_faces} rosto(s)`, 'success');
+                    showStatus(statusDiv, `Encontrado(s) ${data.total_faces} rosto(s)`, 'success');
                     displayImageResults(data, resultsDiv);
                 } else {
                     showStatus(statusDiv, translateApiMessage(data.detail) || 'Erro ao reconhecer imagem', 'error');
@@ -384,12 +391,15 @@
                 const response = await fetch('/api/known-faces');
                 const data = await response.json();
                 const list = document.getElementById('knownFacesList');
-
                 if (data.count === 0) {
                     list.innerHTML = '<p class="muted">Nenhum rosto no banco de dados. Adicione um rosto para começar!</p>';
                 } else {
                     list.innerHTML = data.known_faces
-                        .map(name => `<div class="face-badge">${name}</div>`)
+                        .map(item => {
+                            const wantedBadge = item.wanted ? `<span class="wanted-badge">PROCURADO</span>` : '';
+                            const actionBtn = `<button class="btn btn-small" onclick="toggleWanted(${JSON.stringify(item.name)}, ${item.wanted ? 'false' : 'true'})">${item.wanted ? 'Desmarcar' : 'Marcar'}</button>`;
+                            return `<div class="face-badge">${item.name} ${wantedBadge} ${actionBtn}</div>`
+                        })
                         .join('');
                 }
             } catch (error) {
@@ -408,6 +418,24 @@
                 } catch (error) {
                     showStatus(document.getElementById('dbStatus'), 'Erro: ' + error.message, 'error');
                 }
+            }
+        }
+
+        async function toggleWanted(name, wanted) {
+            try {
+                const formData = new FormData();
+                formData.append('name', name);
+                formData.append('wanted', wanted);
+                const resp = await fetch('/api/set-wanted', { method: 'POST', body: formData });
+                const data = await resp.json();
+                if (resp.ok) {
+                    showStatus(document.getElementById('dbStatus'), translateApiMessage(data.message), 'success');
+                } else {
+                    showStatus(document.getElementById('dbStatus'), translateApiMessage(data.detail) || data.message || 'Erro', 'error');
+                }
+                await loadKnownFaces();
+            } catch (err) {
+                showStatus(document.getElementById('dbStatus'), 'Erro: ' + err.message, 'error');
             }
         }
 
@@ -494,6 +522,7 @@
                 return `Rosto para '${name}' adicionado com sucesso`;
             }
             if (msg.includes('No face detected')) return 'Nenhum rosto detectado na imagem';
+            if (msg.includes('Updated wanted status')) return 'Status de procurado atualizado com sucesso';
             if (msg.includes('Database cleared')) return 'Banco de dados limpo';
             if (msg.includes('Invalid image file')) return 'Arquivo de imagem inválido';
             if (msg.includes('Camera not available')) return 'Câmera não disponível no servidor';
@@ -506,18 +535,25 @@
         }
 
         function displayImageResults(data, container) {
-                const html = `
+            const faces = data.faces || [];
+            const facesHtml = faces.map(f => {
+                const name = f.name === 'Unknown' ? 'Desconhecido' : f.name;
+                const conf = Math.round((f.confidence || 0) * 100);
+                const wanted = !!f.wanted;
+                const badge = wanted ? `<span class="wanted-label">PROCURADO</span>` : `<span class="clear-label">CLARO</span>`;
+                return `<div class="recognized-face ${wanted ? 'wanted' : 'clear'}">
+                            <span class="name">${name}</span>
+                            <span class="confidence">(${conf}% confiança)</span>
+                            ${badge}
+                        </div>`;
+            }).join('') || '<p class="muted">Nenhum rosto detectado</p>';
+
+            const html = `
                 <div class="results-container">
                     <h3>Resultados</h3>
-                    <p><strong>Total de Rostos Detectados:</strong> ${data.data.total_faces}</p>
+                    <p><strong>Total de Rostos Detectados:</strong> ${data.total_faces}</p>
                     <div>
-                        ${data.data.recognized_faces.map(face => `
-                            const isCriminal = face.is_criminal === true || face.status === "CRIMINOSO";
-                            <div class="recognized-face">
-                                <span class="name">${face.name === 'Unknown' ? 'Desconhecido' : face.name}</span>
-                                <span class="confidence">(${(face.confidence * 100).toFixed(1)}% confiança)</span>
-                            </div>
-                        `).join('')}
+                        ${facesHtml}
                     </div>
                     <h4 class="section-title">Imagem Anotada:</h4>
                     <img class="max-full rounded mt-10" src="${data.image}">
@@ -533,12 +569,13 @@
                     <p><strong>Total de Quadros:</strong> ${data.total_frames}</p>
                     <p><strong>Total de Rostos Reconhecidos:</strong> ${data.total_recognized}</p>
                     <h4 class="section-title">Pessoas Reconhecidas:</h4>
-                    ${Object.keys(data.recognized_faces).length === 0 ? 
+                    ${(!data.recognized_faces || data.recognized_faces.length === 0) ? 
                         '<p class="muted">Nenhum rosto reconhecido encontrado no vídeo</p>' :
-                        Object.entries(data.recognized_faces).map(([name, count]) => `
-                            <div class="recognized-face">
-                                <span class="name">${name === 'Unknown' ? 'Desconhecido' : name}</span>
-                                <span class="confidence">${count} detecção${count !== 1 ? 's' : ''}</span>
+                        data.recognized_faces.map(obj => `
+                            <div class="recognized-face ${obj.wanted ? 'wanted' : 'clear'}">
+                                <span class="name">${obj.name === 'Unknown' ? 'Desconhecido' : obj.name}</span>
+                                <span class="confidence">${obj.count} detecção${obj.count !== 1 ? 's' : ''}</span>
+                                ${obj.wanted ? `<span class="wanted-label">PROCURADO</span>` : ''}
                             </div>
                         `).join('')
                     }
