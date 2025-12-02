@@ -8,18 +8,26 @@
 </head>
 <body>
     <div class="container">
-        <div class="header">
+        <header class="header">
             <div class="header-left">
                 <h1>🛡️ Face-Warrant</h1>
-                <p>Sistema de Reconhecimento de Procurados</p>
+                <p>Sistema de Reconhecimento de Procurados • Integrado ao backend FastAPI</p>
             </div>
-            <div class="warrant-stamp">PROCURADO</div>
-        </div>
+            <div style="display:flex;align-items:center;gap:12px">
+                <button class="btn btn-secondary btn-small" onclick="document.getElementById('recognizeImageInput').scrollIntoView({behavior:'smooth'})">Iniciar Análise</button>
+                <div class="warrant-stamp">PROCURADO</div>
+            </div>
+        </header>
 
-        <div class="mainContent">
+        <main class="mainContent">
             
-            <div class="section">
+            <!-- COMPONENT: AddKnownFaceCard -->
+            <section class="section" style="grid-column: span 6;">
                 <h2>➕ Adicionar Rosto Conhecido</h2>
+                <!-- Nota: integração com backend: POST /api/add-known-face
+                     FormData esperado: name, file (image), wanted (bool)
+                     Retorno esperado (EXATO): {status: 'success'|'error', message }
+                     A UI já consome esses campos sem alterações ao backend. -->
                 <div class="formGroup">
                     <label for="faceNameInput">Nome da Pessoa:</label>
                     <input type="text" id="faceNameInput" placeholder="Digite o nome da pessoa">
@@ -31,41 +39,50 @@
                     <label for="faceImageInput">Selecionar Imagem:</label>
                     <input type="file" id="faceImageInput" accept="image/*">
                 </div>
-                <div class="preview-area" id="addFacePreview"></div>
+                <div class="preview-area" id="addFacePreview" aria-hidden="true"></div>
                 <button class="btn btn-primary" onclick="addKnownFace()">Adicionar ao Banco de Dados</button>
                 <div id="addFaceStatus" class="status-message"></div>
                 <div class="spinner" id="addFaceSpinner"></div>
-            </div>
+            </section>
 
             
-            <div class="section">
+            <!-- COMPONENT: RecognizeImageCard -->
+            <section class="section" style="grid-column: span 6;">
                 <h2>🖼️ Reconhecer Imagem</h2>
                 <div class="formGroup">
                     <label for="recognizeImageInput">Selecionar Imagem:</label>
                     <input type="file" id="recognizeImageInput" accept="image/*">
                 </div>
-                <div class="preview-area" id="recognizeImagePreview"></div>
+                 <!-- Nota: integração com backend: POST /api/recognize-image
+                     Retorno esperado (EXATO): { status, total_faces, faces: [{name, confidence, wanted, box}], image: dataURL }
+                     O front-end consome exatamente esses campos abaixo. -->
+                 <div class="preview-area" id="recognizeImagePreview" aria-hidden="true"></div>
                 <button class="btn btn-primary" onclick="recognizeImage()">Reconhecer Rostos</button>
                 <div id="imageStatus" class="status-message"></div>
                 <div class="spinner" id="imageSpinner"></div>
                 <div id="imageResults"></div>
-            </div>
+            </section>
 
             
-            <div class="section">
+            <!-- COMPONENT: RecognizeVideoCard -->
+            <section class="section" style="grid-column: span 6;">
                 <h2>🎬 Reconhecer Vídeo</h2>
                 <div class="formGroup">
                     <label for="recognizeVideoInput">Selecionar Vídeo:</label>
                     <input type="file" id="recognizeVideoInput" accept="video/*">
                 </div>
-                <button class="btn btn-primary" onclick="recognizeVideo()">Reconhecer Rostos no Vídeo</button>
+                 <button class="btn btn-primary" onclick="recognizeVideo()">Reconhecer Rostos no Vídeo</button>
+                 <!-- Nota: integração com backend: POST /api/recognize-video
+                     Retorno esperado (EXATO): { status, total_frames, recognized_faces: [{name, count, wanted}], total_recognized, video_url, video_static_url }
+                     A lógica do front-end está preparada para usar video_static_url e tentar baixar o Blob para exibir. -->
                 <div id="videoStatus" class="status-message"></div>
                 <div class="spinner" id="videoSpinner"></div>
                 <div id="videoResults"></div>
-            </div>
+            </section>
 
             
-            <div class="section">
+            <!-- COMPONENT: WebcamCard -->
+            <section class="section" style="grid-column: span 6;">
                 <h2>📹 Reconhecimento por Webcam</h2>
                 <div class="webcam-container">
                     <img id="webcamStream" class="hidden max-full rounded" alt="Server webcam stream">
@@ -76,21 +93,24 @@
                 </div>
                 <button class="btn btn-primary" id="webcamBtn" onclick="startWebcam()">Iniciar Webcam</button>
                 <button class="btn btn-danger hidden" id="stopWebcamBtn" onclick="stopWebcam()">Parar Webcam</button>
-            </div>
+            </section>
 
             
-            <div class="section">
+            <!-- COMPONENT: KnownFacesCard -->
+            <section class="section" style="grid-column: span 4;">
                 <h2>👥 Rostos Conhecidos</h2>
                 <button class="btn btn-secondary btn-small" onclick="loadKnownFaces()">Atualizar Lista</button>
                 <div id="knownFacesList" class="known-faces-list">
                     <p class="muted">Nenhum rosto carregado ainda. Adicione um rosto para começar!</p>
                 </div>
                 <button class="btn btn-danger btn-small" onclick="clearDatabase()">Limpar Todos os Rostos</button>
+                <!-- Nota: integração com backend: POST /api/clear-database e GET /api/known-faces -->
                 <div id="dbStatus" class="status-message"></div>
-            </div>
+            </section>
 
             
-            <div class="section">
+            <!-- COMPONENT: SystemStatusCard -->
+            <section class="section" style="grid-column: span 8;">
                 <h2>⚙️ Status do Sistema</h2>
                 <button class="btn btn-secondary btn-small" onclick="checkHealth()">Verificar Status</button>
                 <button class="btn btn-small" id="healthConfigBtn" title="Configurar status" onclick="toggleHealthConfig()">⚙️</button>
@@ -130,10 +150,10 @@
                     </div>
                     <div id="healthText" class="mt-10 muted small">Clique em 'Verificar Status' para obter informações do sistema</div>
                 </div>
-            </div>
+            </section>
 
             
-            <div class="section full-width">
+            <section class="section full-width" style="grid-column: 1 / -1;">
                 <h2>ℹ️ Como Usar</h2>
                 <div class="infoSection">
                     <h4>🚀 Início Rápido:</h4>
@@ -153,8 +173,8 @@
                         <li>A qualidade do processamento melhora com imagens de treinamento mais diversas.</li>
                     </ul>
                 </div>
-            </div>
-        </div>
+            </section>
+        </main>
     </div>
 
     <script>
@@ -208,6 +228,7 @@
             formData.append('wanted', wantedChecked);
 
             try {
+                // usar aqui a função real do backend: POST /api/add-known-face
                 const response = await fetch('/api/add-known-face', {
                     method: 'POST',
                     body: formData
@@ -248,6 +269,7 @@
             formData.append('file', file);
 
             try {
+                // usar aqui a função real do backend: POST /api/recognize-image
                 const response = await fetch('/api/recognize-image', {
                     method: 'POST',
                     body: formData
@@ -286,6 +308,7 @@
             formData.append('file', file);
 
             try {
+                // usar aqui a função real do backend: POST /api/recognize-video
                 const response = await fetch('/api/recognize-video', {
                     method: 'POST',
                     body: formData
@@ -343,6 +366,7 @@
 
             try {
                 // Check availability first to provide friendlier error feedback
+                // usar aqui a função real do backend: GET /api/webcam-status
                 const statusResp = await fetch('/api/webcam-status');
                 if (statusResp.ok) {
                     const statusData = await statusResp.json();
@@ -351,6 +375,7 @@
                     }
                 }
 
+                // usar aqui a função real do backend: GET /api/webcam-stream (MJPEG stream)
                 stream.src = '/api/webcam-stream';
                 webcamStreaming = true;
             } catch (error) {
@@ -371,6 +396,7 @@
             const stopBtn = document.getElementById('stopWebcamBtn');
 
             try {
+                // usar aqui a função real do backend: POST /api/stop-webcam
                 await fetch('/api/stop-webcam', { method: 'POST' });
                 stream.src = '';
                 stream.onerror = null;
@@ -388,6 +414,7 @@
         // Load Known Faces
         async function loadKnownFaces() {
             try {
+                // usar aqui a função real do backend: GET /api/known-faces
                 const response = await fetch('/api/known-faces');
                 const data = await response.json();
                 const list = document.getElementById('knownFacesList');
@@ -411,6 +438,7 @@
         async function clearDatabase() {
             if (confirm('Tem certeza que deseja excluir todos os rostos conhecidos? Isso não pode ser desfeito!')) {
                 try {
+                    // usar aqui a função real do backend: POST /api/clear-database
                     const response = await fetch('/api/clear-database', { method: 'POST' });
                     const data = await response.json();
                     showStatus(document.getElementById('dbStatus'), translateApiMessage(data.message), 'success');
@@ -426,6 +454,7 @@
                 const formData = new FormData();
                 formData.append('name', name);
                 formData.append('wanted', wanted);
+                // usar aqui a função real do backend: POST /api/set-wanted
                 const resp = await fetch('/api/set-wanted', { method: 'POST', body: formData });
                 const data = await resp.json();
                 if (resp.ok) {
@@ -455,6 +484,7 @@
             try {
                 spinner.style.display = 'block';
                 healthText.textContent = 'Checking system...';
+                // usar aqui a função real do backend: GET /api/health
                 const response = await fetch('/api/health');
                 const data = await response.json();
                 // Format uptime HH:MM:SS
@@ -535,16 +565,22 @@
         }
 
         function displayImageResults(data, container) {
+            // Espera exato retorno do backend: data.total_faces, data.faces [{name, confidence, wanted, box}], data.image (base64)
             const faces = data.faces || [];
-            const facesHtml = faces.map(f => {
+                const facesHtml = faces.map(f => {
                 const name = f.name === 'Unknown' ? 'Desconhecido' : f.name;
                 const conf = Math.round((f.confidence || 0) * 100);
                 const wanted = !!f.wanted;
                 const badge = wanted ? `<span class="wanted-label">PROCURADO</span>` : `<span class="clear-label">CLARO</span>`;
+                // If backend provides a bounding box (x,y,w,h), show it as complementary data
+                const boxHtml = f.box ? `<div class="muted small">Box: x=${f.box.x}, y=${f.box.y}, w=${f.box.w}, h=${f.box.h}</div>` : '';
                 return `<div class="recognized-face ${wanted ? 'wanted' : 'clear'}">
-                            <span class="name">${name}</span>
-                            <span class="confidence">(${conf}% confiança)</span>
-                            ${badge}
+                            <div>
+                                <div class="name">${name}</div>
+                                <div class="confidence">(${conf}% confiança)</div>
+                                ${badge}
+                                ${boxHtml}
+                            </div>
                         </div>`;
             }).join('') || '<p class="muted">Nenhum rosto detectado</p>';
 
@@ -563,6 +599,7 @@
         }
 
         async function displayVideoResults(data, container) {
+            // Espera exato retorno do backend: data.total_frames, data.total_recognized, data.recognized_faces [{name,count,wanted}], data.video_static_url
                 const html = `
                 <div class="results-container">
                     <h3>Resultados da Análise de Vídeo</h3>
@@ -681,3 +718,5 @@
     </script>
 </body>
 </html>
+message.txt
+39 KB
