@@ -59,7 +59,10 @@ async def get_home():
 async def add_known_face(name: str = Form(...), file: UploadFile = File(...), wanted: bool = Form(False)):
     try:
         contents = await file.read()
-        file_path = f"uploaded_files/{datetime.now().timestamp()}_{file.filename}"
+        # Sanitize filename to avoid directory traversal or special characters
+        safe_fname = Path(file.filename).name if file.filename else str(datetime.now().timestamp())
+        safe_fname = safe_fname.replace(' ', '_')
+        file_path = f"uploaded_files/{datetime.now().timestamp()}_{safe_fname}"
         with open(file_path, "wb") as f:
             f.write(contents)
         print(f"[add_known_face] Saved file: {file_path}")
@@ -163,13 +166,18 @@ async def recognize_video(file: UploadFile = File(...)):
     try:
         contents = await file.read()
         timestamp = str(datetime.now().timestamp()).replace(".", "_")
-        input_path = f"uploaded_files/{timestamp}_input_{file.filename}"
+        safe_fname = Path(file.filename).name if file.filename else 'video'
+        safe_fname = safe_fname.replace(' ', '_')
+        input_path = f"uploaded_files/{timestamp}_input_{safe_fname}"
         output_path = f"uploaded_files/{timestamp}_output.mp4"
         
         with open(input_path, "wb") as f:
             f.write(contents)
         
         cap = cv2.VideoCapture(input_path)
+        if not cap.isOpened():
+            print(f"[recognize_video] Could not open video: {input_path}")
+            raise HTTPException(status_code=400, detail="Cannot open input video file")
         frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         fps = int(cap.get(cv2.CAP_PROP_FPS))
@@ -184,16 +192,16 @@ async def recognize_video(file: UploadFile = File(...)):
         recognized_count = 0
         people_found = {}
         
+        last_results = None
         while True:
             ret, frame = cap.read()
             if not ret:
                 break
             
-            results = None
             if frame_count % 5 == 0:
                 results = recognizer.detect_and_recognize_faces(frame)
-                
-                for rec in results["recognized"]:
+                last_results = results
+                for rec in (results and results.get("recognized", [])):
                     # rec expected: (name, confidence, wanted)
                     try:
                         name = rec[0]
@@ -212,7 +220,8 @@ async def recognize_video(file: UploadFile = File(...)):
                             people_found[name]["wanted"] = True
                         recognized_count += 1
             else:
-                results = recognizer.detect_and_recognize_faces(frame)
+                # Reuse last detection/recognition for intermediate frames to save processing time
+                results = last_results
             
             if results:
                 frame = recognizer.draw_results(frame, results)
@@ -389,9 +398,14 @@ async def get_known_faces():
 
 
 @app.post('/api/set-wanted')
-async def set_wanted(name: str = Form(...), wanted: bool = Form(...)):
+async def set_wanted(name: str = Form(...), wanted: str = Form(...)):
     try:
-        updated = db.set_wanted(name, wanted)
+        # Accept both boolean and string values for 'wanted'
+        if isinstance(wanted, str):
+            wanted_bool = wanted.strip().lower() in ("true", "1", "yes", "y", "on")
+        else:
+            wanted_bool = bool(wanted)
+        updated = db.set_wanted(name, wanted_bool)
         if updated:
             return {"status": "success", "message": f"Updated wanted status for {name}"}
         else:

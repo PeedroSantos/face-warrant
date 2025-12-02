@@ -13,8 +13,7 @@
                 <h1>🛡️ Face-Warrant</h1>
                 <p>Sistema de Reconhecimento de Procurados • Integrado ao backend FastAPI</p>
             </div>
-            <div style="display:flex;align-items:center;gap:12px">
-                <button class="btn btn-secondary btn-small" onclick="document.getElementById('recognizeImageInput').scrollIntoView({behavior:'smooth'})">Iniciar Análise</button>
+                <div style="display:flex;align-items:center;gap:12px">
                 <div class="warrant-stamp">PROCURADO</div>
             </div>
         </header>
@@ -422,10 +421,11 @@
                     list.innerHTML = '<p class="muted">Nenhum rosto no banco de dados. Adicione um rosto para começar!</p>';
                 } else {
                     list.innerHTML = data.known_faces
-                        .map(item => {
-                            const wantedBadge = item.wanted ? `<span class="wanted-badge">PROCURADO</span>` : '';
-                            const actionBtn = `<button class="btn btn-small" onclick="toggleWanted(${JSON.stringify(item.name)}, ${item.wanted ? 'false' : 'true'})">${item.wanted ? 'Desmarcar' : 'Marcar'}</button>`;
-                            return `<div class="face-badge">${item.name} ${wantedBadge} ${actionBtn}</div>`
+                                .map(item => {
+                                    const wantedBadge = item.wanted ? `<span class="wanted-badge">PROCURADO</span>` : '';
+                                    const escapedName = (item.name || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, "\\n");
+                                    const actionBtn = `<button class="btn btn-small" onclick="toggleWanted('${escapedName}', ${item.wanted ? 'false' : 'true'})">${item.wanted ? 'Desmarcar' : 'Marcar'}</button>`;
+                                    return `<div class="face-badge">${item.name} ${wantedBadge} ${actionBtn}</div>`
                         })
                         .join('');
                 }
@@ -453,7 +453,8 @@
             try {
                 const formData = new FormData();
                 formData.append('name', name);
-                formData.append('wanted', wanted);
+                // Ensure boolean is sent as a string 'true'/'false' so FastAPI parses reliably
+                formData.append('wanted', String(wanted));
                 // usar aqui a função real do backend: POST /api/set-wanted
                 const resp = await fetch('/api/set-wanted', { method: 'POST', body: formData });
                 const data = await resp.json();
@@ -718,5 +719,3 @@
     </script>
 </body>
 </html>
-message.txt
-39 KB
