@@ -2,7 +2,6 @@
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-brightgreen)](https://fastapi.tiangolo.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **Face-Warrant** é um sistema simples e local de reconhecimento facial projetado para demonstrar como identificar pessoas em fotos, vídeos ou até em tempo real (via webcam). Imagine um "detector de procurados" de filme: você cadastra rostos conhecidos, marca alguns como "PROCURADO" e o sistema analisa novas imagens para alertar se encontrar alguém na lista. 
 
