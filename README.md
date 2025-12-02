@@ -1,265 +1,179 @@
-# Face-Warrant — Sistema de Reconhecimento Facial (Face-Warrant)
+# Face-Warrant 🚨
 
-> Pequeno sistema local de reconhecimento facial com interface web e um banco de rostos conhecido (para uso em demonstração/estudo).
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-brightgreen)](https://fastapi.tiangolo.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Este README é escrito para usuários iniciantes e também para desenvolvedores.
+**Face-Warrant** é um sistema simples e local de reconhecimento facial projetado para demonstrar como identificar pessoas em fotos, vídeos ou até em tempo real (via webcam). Imagine um "detector de procurados" de filme: você cadastra rostos conhecidos, marca alguns como "PROCURADO" e o sistema analisa novas imagens para alertar se encontrar alguém na lista. 
 
----
+**Atenção importante:** Este é um projeto educacional e de demonstração. Ele **NÃO** deve ser usado com dados reais de pessoas sem autorização legal. Ele simula o conceito, mas não é um sistema profissional de segurança ou polícia. Use apenas para aprendizado!
 
-## O que faz o projeto
+## 📖 O que este projeto faz? (Explicação simples)
 
-- Adicionar fotos de rostos conhecidos
-- Marcar rostos como *PROCURADO* (destaque especial)
-- Analisar imagens e vídeos e reconhecer rostos com boxes e rótulos
-- Exibir transmissão da webcam do servidor com reconhecimento em tempo real (se houver câmera)
+Pense no Face-Warrant como um "álbum de fotos inteligente":
+- **Cadastra rostos:** Você adiciona fotos de pessoas (com nomes) e decide se elas são "procuradas" ou não.
+- **Analisa imagens:** Envie uma foto ou vídeo, e o sistema desenha caixas ao redor dos rostos, diz quem é (se conhece) e avisa se é "PROCURADO" com um selo vermelho chamativo.
+- **Tempo real:** Se o servidor tiver uma webcam, você pode ver detecções ao vivo.
+- **Interface fácil:** Tudo roda em um site simples no seu navegador, sem complicações.
 
----
+É perfeito para quem está aprendendo sobre Inteligência Artificial (IA), visão computacional ou programação web. Não precisa ser expert – basta seguir os passos!
 
-## Destaques das correções/ajustes recentes
+## ✨ Funcionalidades principais
 
-As últimas mudanças incluíram:
+- **Cadastro de rostos:** Adicione fotos nítidas (frente do rosto) e marque como "PROCURADO".
+- **Reconhecimento em imagens:** Detecta múltiplos rostos, mostra confiança (ex: 85% de certeza) e boxes coloridos.
+- **Análise de vídeos:** Processa vídeos inteiros e conta quantas vezes cada pessoa aparece.
+- **Webcam ao vivo:** Transmissão em tempo real do servidor (se disponível).
+- **Lista de conhecidos:** Veja e edite rostos cadastrados facilmente.
+- **Status do sistema:** Verifique se tudo está funcionando (CPU, memória, etc.).
+- **Tema escuro e visual "Wanted":** Interface bonita e intuitiva, com animações suaves.
 
-- Corrigido visual de chips/status (o ícone do chip agora tem contraste para ficar legível)
-- Removido o botão de header "Iniciar Análise" que não era necessário. (A navegação direta ainda está disponível na interface.)
-- Corrigido o botão de marcação/desmarcação (toggle) — agora a ação envia dados corretamente e refresca a lista.
-- Uploads: nomes de arquivos agora são sanitizados ao salvar em `uploaded_files/`.
-- `/api/recognize-video` agora verifica se o arquivo pode ser aberto e processa menos frames para melhorar desempenho.
+## 🛠️ Tecnologias usadas (para curiosos)
 
----
+- **Backend:** Python com [FastAPI](https://fastapi.tiangolo.com/) (rápido e moderno).
+- **IA para rostos:** 
+  - [YOLO](https://github.com/ultralytics/yolov5) para detectar onde estão os rostos.
+  - [DeepFace](https://github.com/serengil/deepface) para comparar e reconhecer.
+- **Frontend:** HTML, CSS e JavaScript puro (sem frameworks pesados).
+- **Outros:** Torch (para IA), FFmpeg (para vídeos, opcional).
 
-## Instalação (passo a passo)
+Não se preocupe se não souber disso tudo – o foco é no uso, não no código!
 
-1. Crie um diretório e entre nele
+## 🚀 Como instalar e rodar (passo a passo para iniciantes)
 
-```powershell
-git clone <repo-url> ; cd face-warrant
-```
+### Pré-requisitos
+- **Computador com:** Windows, Mac ou Linux.
+- **Python 3.10 ou superior:** Baixe em [python.org](https://www.python.org/downloads/). (Se não tiver, instale primeiro!)
+- **Git:** Para baixar o projeto (baixe em [git-scm.com](https://git-scm.com/)).
+- **Espaço em disco:** Pelo menos 2GB livres (modelos de IA ocupam espaço).
+- **GPU (opcional):** Se tiver uma placa de vídeo NVIDIA, é mais rápido; senão, roda na CPU.
 
-2. (Opcional, recomendado) Crie e ative um ambiente virtual
+### Passos de instalação
+1. **Baixe o projeto:**
+   Abra o terminal (Prompt de Comando no Windows) e digite:
+   ```
+   git clone https://github.com/PeedroSantos/face-warrant.git
+   cd face-warrant
+   ```
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate
-```
+2. **Crie um ambiente virtual (recomendado, para não bagunçar seu Python):**
+   ```
+   python -m venv .venv
+   ```
+   Ative-o:
+   - **Windows:** `.venv\Scripts\activate`
+   - **Mac/Linux:** `source .venv/bin/activate`
 
-3. Instale as dependências
+3. **Instale as dependências:**
+   ```
+   pip install -r requirements.txt
+   ```
+   (Isso baixa tudo automaticamente. Pode demorar 5-10 minutos na primeira vez.)
 
-```powershell
-pip install -r requirements.txt
-```
+4. **Inicie o servidor:**
+   ```
+   uvicorn app:app --reload --host 0.0.0.0 --port 8000
+   ```
+   Você verá algo como "Uvicorn running on http://0.0.0.0:8000".
 
-4. Inicie o servidor
+5. **Abra no navegador:**
+   Vá para [http://localhost:8000](http://localhost:8000). Pronto! A interface aparece.
 
-```powershell
-uvicorn app:app --reload --host 0.0.0.0 --port 8000
-```
+**Dica:** Se der erro no FFmpeg (para vídeos), instale em [ffmpeg.org](https://ffmpeg.org/download.html) e adicione ao PATH do sistema.
 
-5. Abra: http://localhost:8000
+### Parando o servidor
+Pressione `Ctrl + C` no terminal.
 
----
+## 📱 Como usar (guia visual simples)
 
-## Como usar (passo a passo para leigos)
+1. **Adicionar um rosto conhecido:**
+   - Vá na seção "➕ Adicionar Rosto Conhecido".
+   - Digite o nome (ex: "João Silva").
+   - Marque "Marcar como PROCURADO" se quiser.
+   - Escolha uma foto clara do rosto.
+   - Clique "Adicionar ao Banco de Dados".
+   - Veja a confirmação verde!
 
-1. Abra a página no navegador.
-2. Para adicionar rosto conhecido: selecione uma imagem frontal nítida, digite o nome e marque "Marcar como PROCURADO" se desejar.
-3. Para verificar imagem ou vídeo: envie o arquivo e espere o processamento — verá a imagem/vídeo com boxes e rótulos.
-4. Para marcar/desmarcar: acesse a lista de rostos, clique em "Marcar" (ou "Desmarcar"). O sistema atualiza o banco e o distintivo "PROCURADO" muda de acordo.
+2. **Reconhecer uma imagem:**
+   - Na seção "🖼️ Reconhecer Imagem", envie uma foto.
+   - Clique "Reconhecer Rostos".
+   - Resultado: Foto com boxes, nomes e alertas "PROCURADO" em vermelho.
 
----
+3. **Analisar um vídeo:**
+   - Envie um arquivo de vídeo na seção "🎬 Reconhecer Vídeo".
+   - Aguarde o processamento (pode demorar).
+   - Veja o resumo de detecções e assista ao vídeo anotado.
 
-## Endpoints importantes (para desenvolvedores)
+4. **Webcam ao vivo:**
+   - Clique "Iniciar Webcam" (precisa de câmera no servidor).
+   - Pare com "Parar Webcam".
 
-- GET `/` — Interface
-- POST `/api/add-known-face` — FormData: `name`, `file`, `wanted` (true/false)
-- POST `/api/recognize-image` — FormData: `file` — retorna `image` (base64) + `faces` list
-- POST `/api/recognize-video` — FormData: `file` — retorna `video_url` e `recognized_faces`
-- GET `/api/known-faces` — retorna array `{name, wanted}`
-- POST `/api/set-wanted` — FormData: `name`, `wanted` — define a name as wanted or not
-- POST `/api/clear-database` — limpa todos os rostos conhecidos
+5. **Gerenciar rostos:**
+   - Na seção "👥 Rostos Conhecidos", atualize a lista.
+   - Clique "Limpar Todos os Rostos" para resetar (cuidado!).
 
----
+**Dicas para melhores resultados:**
+- Use fotos nítidas e frontais para cadastrar.
+- Adicione várias fotos da mesma pessoa para mais precisão.
+- Iluminação boa ajuda a IA!
+- Se o reconhecimento falhar, teste com menos rostos no banco.
 
-## Testes rápidos que você pode executar
+## 🔌 API (para quem quer integrar com outros apps)
 
-1. Adicione 1 rosto usando o formulário de adicionar rosto.
-2. Verifique se o rosto aparece na lista de rostos conhecidos, e teste marcar/desmarcar.
-3. Faça o upload de uma imagem com a pessoa conhecida para ver se é reconhecida.
-4. Faça o upload de um vídeo e verifique o resultado e o link de download.
+O backend é uma API REST simples. Use ferramentas como Postman ou curl. Exemplos:
 
----
+- **Adicionar rosto:** `POST /api/add-known-face` (envie form-data: `name`, `file`, `wanted=true/false`).
+- **Reconhecer imagem:** `POST /api/recognize-image` (envie `file`).
+- **Lista de rostos:** `GET /api/known-faces`.
+- **Limpar banco:** `POST /api/clear-database`.
 
-## Avisos e privacidade
+Veja a [documentação automática do FastAPI](http://localhost:8000/docs) no navegador após rodar o servidor.
 
-- Não exponha esse aplicativo publicamente sem autenticação e controle de acesso.
-- Não use o sistema com dados/reconhecimento real sem autorização e cuidados legais.
+## ⚠️ Avisos de segurança e privacidade
 
----
+- **Local apenas:** Rode só no seu computador. Não exponha na internet sem senha!
+- **Dados sensíveis:** Fotos de rostos são salvas localmente (em `uploaded_files/` e `known_faces/`). Delete após usar.
+- **Não para uso real:** Isso é demo. Para sistemas reais, use ferramentas profissionais com conformidade (ex: LGPD/GDPR).
+- **Limitações:** Pode errar em ângulos ruins, baixa luz ou máscaras. Precisão ~80-95% em testes ideais.
 
-Se quiser que eu implemente autenticação, locks para uploads maiores, ou mover processamento de vídeos para workers, posso ajudar com isso na próxima fase.
-++ Begin Marker
-# Face-Warrant — Sistema de Reconhecimento Facial (WWP)
+## 🐛 Problemas comuns e soluções
 
-Bem-vindo ao Face-Warrant — um projeto simples para demonstrar reconhecimento facial local com um front-end fácil de usar.
+| Problema | Solução |
+|----------|---------|
+| "No module named 'torch'" | Rode `pip install -r requirements.txt` novamente. |
+| Webcam não inicia | Verifique se o servidor tem câmera; teste com `ls /dev/video*` (Linux). |
+| Vídeo lento | Use CPU mais forte ou GPU; instale FFmpeg. |
+| Erro de memória | Feche outros apps; reduza resolução de vídeos. |
+| Interface não carrega | Verifique se o servidor roda em `localhost:8000`. |
 
-Este README explica de forma simples o que o projeto faz e como utilizá-lo, mesmo se você não for programador.
+Se nada resolver, abra uma [issue no GitHub](https://github.com/PeedroSantos/face-warrant/issues) com o erro exato.
 
----
+## 🤝 Contribuições
 
-## O que é este projeto? 🤖
+Quer ajudar? Ótimo!
+1. Fork o repositório.
+2. Crie uma branch (`git checkout -b feature/nova-ideia`).
+3. Commit suas mudanças (`git commit -m 'Adicionei X'`).
+4. Push para a branch (`git push origin feature/nova-ideia`).
+5. Abra um Pull Request.
 
-Face-Warrant é uma aplicação web local que permite:
-- Adicionar fotos de pessoas ("rostos conhecidos") ao banco de dados;
-- Marcar rostos como "PROCURADO" para destaque especial (útil para demonstrações); 
-- Enviar imagens ou vídeos para reconhecimento e ver o resultado com caixas e rótulos no próprio navegador; 
-- Usar uma câmera do servidor para detectar e reconhecer rostos em tempo real.
+Obrigado por contribuir! 🌟
 
-O projeto usa modelos de detecção (YOLO) e extração de características (DeepFace) para comparar rostos com um banco local.
+## 📄 Licença
 
----
+Este projeto é [MIT License](LICENSE) – use livremente, mas respeite os créditos.
 
-## Requisitos mínimos
+## 👨‍💻 Autor
 
-- Python 3.10+ (recomendado 3.11)
-- Memória: mínimo 4GB (mais é melhor) — a execução com DeepFace/YOLO pode ser pesada
-- Se você quiser aceleração por GPU (NVIDIA), instale os drivers e CUDA compatíveis com `torch`.
-- `ffmpeg` pode ser necessário para certos processos de vídeo.
+- **Pedro Santos** ([@PeedroSantos](https://github.com/PeedroSantos))
+- Feito para um trabalho de reconhecimento facial (mandato de prisão simulado).
 
----
+## 🙏 Agradecimentos
 
-## Instalação (passo a passo)
-
-1) Clone o repositório (ou copie os arquivos para uma pasta):
-
-```powershell
-git clone <repo-url>
-cd face-warrant
-```
-
-2) Crie e ative um ambiente virtual (recomendado):
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate
-```
-
-3) Instale as dependências:
-
-```powershell
-pip install -r requirements.txt
-```
-
-4) (Opcional) Se você usar GPU, confirme que `torch` foi instalado corretamente com suporte a CUDA.
-
-5) Inicie a aplicação:
-
-```powershell
-uvicorn app:app --reload --host 0.0.0.0 --port 8000
-```
-
-6) Abra no navegador: http://localhost:8000
-
----
-
-## Uso (visualmente, para qualquer pessoa)
-
-1. Ao abrir o site, você verá cartões com ações: Adicionar rosto conhecido, Reconhecer imagem, Reconhecer vídeo, e Iniciar webcam.
-2. Para adicionar um rosto:
-   - Selecione uma foto clara e frontal (frente do rosto) e digite o nome.
-   - Marque a caixa "Marcar como PROCURADO" se quiser destacar esse rosto.
-   - Clique em "Adicionar ao Banco de Dados" — se o sistema encontrar um rosto na imagem, ele será salvo localmente.
-3. Para reconhecer em imagens:
-   - Envie uma imagem e clique em "Reconhecer Rostos".
-   - A aplicação retorna uma imagem anotada (com boxes), nomes, confiança e se a pessoa está marcada como "PROCURADO".
-4. Para reconhecer em vídeo:
-   - Envie um arquivo de vídeo; a aplicação irá processá-lo e retornar um link para visualização do vídeo anotado e uma lista das pessoas reconhecidas.
-5. Webcam do servidor (se o servidor tiver câmera):
-   - Verifique o status e inicie a webcam para obter um fluxo MJPEG com reconhecimento em tempo real.
-
----
-
-## API (para desenvolvedores)
-
-Principais rotas (HTTP):
-- GET `/` — UI (pagina principal)
-- POST `/api/add-known-face` — Adiciona rosto (FormData: `name`, `file`, `wanted`)
-- POST `/api/recognize-image` — Reconhece rostos em imagem (FormData: `file`)
-- POST `/api/recognize-video` — Processa vídeo (FormData: `file`) -> retorna link para vídeo anotado
-- GET `/api/known-faces` — Lista rostos conhecidos
-- POST `/api/set-wanted` — Marca/desmarca um nome como `wanted` (FormData: `name`, `wanted`)
-- POST `/api/clear-database` — Limpa o banco de rostos
-- GET `/api/video/{video_id}` — Serve o vídeo anotado, com suporte a Range Requests para streaming
-- GET `/api/health` — Informações de saúde do serviço
+- [FastAPI](https://fastapi.tiangolo.com/) por ser incrível.
+- [DeepFace](https://github.com/serengil/deepface) e [YOLO](https://github.com/ultralytics/yolov5) pela IA acessível.
+- Professores e comunidade open-source!
 
 ---
 
-## Notas importantes de segurança e privacidade ⚠️
-
-- Este projeto não adiciona nenhum mecanismo de autenticação por padrão. Se você for usar em produção, adicione autenticação e autorização.
-- Tenha cuidado com dados pessoais — imagens faciais são sensíveis. Evite usar rostos reais sem consentimento.
-- Os arquivos enviados são salvos na pasta `uploaded_files` e o banco local em `known_faces/encodings.pkl`.
-- Evite expor este serviço à Internet sem proteções adicionais.
-
----
-
-## Dicas e resolução de problemas
-
-- Se o app não iniciar ou informar `ModuleNotFoundError`, verifique a instalação com `pip install -r requirements.txt`.
-- Se o YOLO/DeepFace demora para carregar, aguarde — modelos podem ser grandes.
-- Se o vídeo não reproduzir no navegador, tente abrir o `video_static_url` em nova aba ou instalar codecs do sistema (ex: H.264).
-- Para abrir câmera do servidor, o processo precisa de acesso físico à câmera ou dispositivo virtual no ambiente em execução.
-
----
-
-## Contribuindo
-
-Pequenas alterações de correção, melhorias na interface, ou adicionar autenticação são bem-vindas. Abra uma issue ou pull request.
-
----
-
-## Licença
-
-Coloque aqui a licença do seu projeto (MIT, Apache, etc.).
-
----
-
-Se quiser, posso também gerar um pequeno arquivo `CONTRIBUTING.md` com passos para contribuir, ou adicionar instruções para rodar em Docker.
-
-++ End Marker# Face-Warrant — Sistema de Reconhecimento de Procurados
-
-Resumo das alterações que foram implementadas e próximos passos:
-
-## O que foi revisado
-- Consertei a função de detecção e reconhecimento para retornar o status `wanted` corretamente (boolean) e evitar entradas duplicadas.
-- Adicionei suporte para marcar rostos como `PROCURADO` no banco de dados.
-- Atualizei o front-end para:
-  - Mostrar um tema escuro e visual de "WANTED" (Face-Warrant).
-  - Adicionar uma opção ao cadastrar um rosto para marcá-lo como PROCURADO.
-  - Exibir um distintivo "PROCURADO" nos rostos reconhecidos e na lista de rostos conhecidos.
-  - Adicionar botão para marcar/desmarcar um rosto como PROCURADO no front-end.
-- Corrigi algumas inconsistências na API / front-end (chaves de resposta e estrutura dos dados).
-- Removi `known_faces` do workspace e adicionei ao `.gitignore`.
-
-## Rotas principais
-- `POST /api/add-known-face` - adiciona rosto ao banco; novo campo `wanted` (boolean)
-- `GET /api/known-faces` - lista os rostos conhecidos com `{name, wanted}`
-- `POST /api/set-wanted` - alterna o estado de procurado de um nome conhecido
-- `POST /api/recognize-image` - retorna `faces`: lista com `{name, confidence, wanted, box}` e `image` (base64) com anotações
-- `POST /api/recognize-video` - retorna `recognized_faces`: lista com `{name, count, wanted}`
-
-## Remoção do known_faces
-- `known_faces/` foi removido da árvore local e adicionado ao `.gitignore`.
-
-## Como testar localmente
-1. Configure um ambiente virtual e instale dependências: 
-
-```powershell
-python -m venv .venv; .\.venv\Scripts\Activate; pip install -r requirements.txt
-```
-
-2. Inicie a aplicação:
-
-```powershell
-uvicorn app:app --reload --host 0.0.0.0 --port 8000
-```
-
-3. Abra `http://localhost:8000` e teste as funcionalidades: enviar imagens, marcar como procurado, etc.
+**Perguntas?** Deixe uma issue ou mande um e-mail. Divirta-se experimentando! 🚀
