@@ -7,7 +7,10 @@ import numpy as np
 from io import BytesIO
 import base64
 import os
+import logging
 from pathlib import Path
+
+logger = logging.getLogger("face_warrant")
 import asyncio
 from datetime import datetime
 try:
@@ -65,16 +68,16 @@ async def add_known_face(name: str = Form(...), file: UploadFile = File(...), wa
         file_path = f"uploaded_files/{datetime.now().timestamp()}_{safe_fname}"
         with open(file_path, "wb") as f:
             f.write(contents)
-        print(f"[add_known_face] Saved file: {file_path}")
+        logger.debug(f"[add_known_face] Saved file: {file_path}")
 
         image = cv2.imdecode(np.frombuffer(contents, np.uint8), cv2.IMREAD_COLOR)
-        print(f"[add_known_face] Image shape: {image.shape if image is not None else 'None'}")
+        logger.debug(f"[add_known_face] Image shape: {image.shape if image is not None else 'None'}")
         success = False
         try:
             if image is not None:
                 yres = recognizer.yolo_model(image)
                 dets = yres[0].boxes
-                print(f"[add_known_face] YOLO detections: {len(dets)}")
+                logger.debug(f"[add_known_face] YOLO detections: {len(dets)}")
                 if len(dets) > 0:
                     x1, y1, x2, y2 = dets[0].xyxy[0].cpu().numpy()
                     x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
@@ -82,26 +85,26 @@ async def add_known_face(name: str = Form(...), file: UploadFile = File(...), wa
                     x1, y1 = max(0, x1), max(0, y1)
                     x2, y2 = min(w, x2), min(h, y2)
                     face_img = image[y1:y2, x1:x2]
-                    print(f"[add_known_face] Cropped face shape: {face_img.shape}, size: {face_img.size}")
+                    logger.debug(f"[add_known_face] Cropped face shape: {face_img.shape}, size: {face_img.size}")
                     if face_img.size != 0:
                         success = db.add_face_from_array(face_img, name, wanted)
-                    print(f"[add_known_face] add_face_from_array result: {success}")
+                    logger.debug(f"[add_known_face] add_face_from_array result: {success}")
         except Exception as e:
-            print(f"[add_known_face] YOLO/crop error: {e}")
+            logger.debug(f"[add_known_face] YOLO/crop error: {e}")
             success = False
 
         if not success:
             try:
-                print(f"[add_known_face] Trying fallback: full image array")
+                logger.debug(f"[add_known_face] Trying fallback: full image array")
                 if image is not None:
                     success = db.add_face_from_array(image, name, wanted)
-                    print(f"[add_known_face] Fallback result: {success}")
+                    logger.debug(f"[add_known_face] Fallback result: {success}")
                 else:
-                    print(f"[add_known_face] Image is None, trying file path")
+                    logger.debug(f"[add_known_face] Image is None, trying file path")
                     success = db.add_face(name, image_path=file_path, wanted=wanted)
-                    print(f"[add_known_face] File path result: {success}")
+                    logger.debug(f"[add_known_face] File path result: {success}")
             except Exception as e:
-                print(f"[add_known_face] Fallback error: {e}")
+                logger.debug(f"[add_known_face] Fallback error: {e}")
                 success = False
         
         if success:
@@ -109,7 +112,7 @@ async def add_known_face(name: str = Form(...), file: UploadFile = File(...), wa
         else:
             return {"status": "error", "message": "No face detected in image"}
     except Exception as e:
-        print(f"[add_known_face] Top-level error: {e}")
+        logger.debug(f"[add_known_face] Top-level error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 
@@ -176,7 +179,7 @@ async def recognize_video(file: UploadFile = File(...)):
         
         cap = cv2.VideoCapture(input_path)
         if not cap.isOpened():
-            print(f"[recognize_video] Could not open video: {input_path}")
+            logger.debug(f"[recognize_video] Could not open video: {input_path}")
             raise HTTPException(status_code=400, detail="Cannot open input video file")
         frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -235,13 +238,13 @@ async def recognize_video(file: UploadFile = File(...)):
         try:
             test_cap = cv2.VideoCapture(output_path)
             if not test_cap.isOpened():
-                print(f"Warning: output video '{output_path}' cannot be opened by OpenCV.")
+                logger.debug(f"Warning: output video '{output_path}' cannot be opened by OpenCV.")
             else:
                 ret_test, _ = test_cap.read()
-                print(f"Output video first frame read success: {ret_test}")
+                logger.debug(f"Output video first frame read success: {ret_test}")
             test_cap.release()
         except Exception as e:
-            print(f"Error validating output video: {e}")
+            logger.debug(f"Error validating output video: {e}")
         
         if not os.path.exists(output_path):
             raise Exception("Video file was not created")
@@ -250,7 +253,7 @@ async def recognize_video(file: UploadFile = File(...)):
         if file_size == 0:
             raise Exception("Video file is empty")
         
-        print(f"Video created successfully: {output_path}, size: {file_size} bytes")
+        logger.debug(f"Video created successfully: {output_path}, size: {file_size} bytes")
         
         os.remove(input_path)
 
@@ -259,7 +262,7 @@ async def recognize_video(file: UploadFile = File(...)):
         if try_reencode:
             try:
                 reencoded_path = f"{output_path}.re.mp4"
-                print(f"Attempting re-encode to H264-like fourcc for better browser compatibility: {reencoded_path}")
+                logger.debug(f"Attempting re-encode to H264-like fourcc for better browser compatibility: {reencoded_path}")
                 cap_re = cv2.VideoCapture(output_path)
                 if cap_re.isOpened():
                     w = int(cap_re.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -272,7 +275,7 @@ async def recognize_video(file: UploadFile = File(...)):
                             fourcc_re = cv2.VideoWriter_fourcc(*codec)
                             out_re = cv2.VideoWriter(reencoded_path, fourcc_re, fps_r, (w, h))
                             if not out_re.isOpened():
-                                print(f"Codec {codec} didn't open writer")
+                                logger.debug(f"Codec {codec} didn't open writer")
                                 continue
                             cap_re.set(cv2.CAP_PROP_POS_FRAMES, 0)
                             while True:
@@ -282,19 +285,19 @@ async def recognize_video(file: UploadFile = File(...)):
                                 out_re.write(frame_r)
                             out_re.release()
                             reencoded = True
-                            print(f"Re-encoding succeeded with codec {codec}")
+                            logger.debug(f"Re-encoding succeeded with codec {codec}")
                             break
                         except Exception as e:
-                            print(f"Re-encode attempt with {codec} failed: {e}")
+                            logger.debug(f"Re-encode attempt with {codec} failed: {e}")
                     cap_re.release()
                     if reencoded and os.path.exists(reencoded_path):
                         os.replace(reencoded_path, output_path)
-                        print(f"Reencoded file replaced the output: {output_path}")
+                        logger.debug(f"Reencoded file replaced the output: {output_path}")
                     else:
                         if os.path.exists(reencoded_path):
                             os.remove(reencoded_path)
             except Exception as e:
-                print(f"Error during optional re-encoding: {e}")
+                logger.debug(f"Error during optional re-encoding: {e}")
         
         recognized_list = [{"name": n, "count": v["count"], "wanted": v.get("wanted", False)} for n, v in people_found.items()]
 
@@ -308,7 +311,7 @@ async def recognize_video(file: UploadFile = File(...)):
             "file_size": file_size
         }
     except Exception as e:
-        print(f"Video processing error: {e}")
+        logger.debug(f"Video processing error: {e}")
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=400, detail=str(e))
@@ -323,7 +326,7 @@ async def webcam_stream():
     """
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
-        print("[webcam_stream] Camera not available (index 0)")
+        logger.debug("[webcam_stream] Camera not available (index 0)")
         raise HTTPException(status_code=503, detail="Camera not available on server")
 
     async def generate():
@@ -337,7 +340,7 @@ async def webcam_stream():
             while webcam_active:
                 ret, frame = cap.read()
                 if not ret:
-                    print("[webcam_stream] No frame received from camera")
+                    logger.debug("[webcam_stream] No frame received from camera")
                     break
 
                 frame = cv2.resize(frame, (640, 480))
@@ -387,7 +390,7 @@ async def webcam_status():
             cap.release()
         return {"available": available}
     except Exception as e:
-        print(f"[webcam_status] Error checking camera: {e}")
+        logger.debug(f"[webcam_status] Error checking camera: {e}")
         return {"available": False}
 
 
@@ -411,7 +414,7 @@ async def set_wanted(name: str = Form(...), wanted: str = Form(...)):
         else:
             return {"status": "error", "message": f"No matching name {name} found"}
     except Exception as e:
-        print(f"[set-wanted] Error: {e}")
+        logger.debug(f"[set-wanted] Error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 
@@ -440,15 +443,15 @@ async def get_video(video_id: str, range: Optional[str] = Header(None)):
                 break
         
         if not video_path or not os.path.exists(video_path):
-            print(f"Video not found for ID: {video_id}")
-            print(f"Files in uploaded_files: {os.listdir('uploaded_files')}")
+            logger.debug(f"Video not found for ID: {video_id}")
+            logger.debug(f"Files in uploaded_files: {os.listdir('uploaded_files')}")
             raise HTTPException(status_code=404, detail="Video not found")
         
-        print(f"Serving video: {video_path}")
-        print(f"Range Header: {range}")
+        logger.debug(f"Serving video: {video_path}")
+        logger.debug(f"Range Header: {range}")
         
         file_size = os.path.getsize(video_path)
-        print(f"Video file_size: {file_size}")
+        logger.debug(f"Video file_size: {file_size}")
         
         if range:
             try:
@@ -475,7 +478,7 @@ async def get_video(video_id: str, range: Optional[str] = Header(None)):
                 }
                 return Response(content=data, status_code=206, media_type="video/mp4", headers=headers)
             except Exception as e:
-                print(f"Range processing error: {e}")
+                logger.debug(f"Range processing error: {e}")
                 # fall back to sending entire file
 
         return FileResponse(
@@ -490,7 +493,7 @@ async def get_video(video_id: str, range: Optional[str] = Header(None)):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error serving video: {e}")
+        logger.debug(f"Error serving video: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 
@@ -592,7 +595,7 @@ async def health_check():
             "simple": simple,
         }
     except Exception as e:
-        print(f"[health_check] Exception assembling health info: {e}")
+        logger.debug(f"[health_check] Exception assembling health info: {e}")
         return {"status": "error", "detail": str(e)}
 
 @app.get('/api/health')

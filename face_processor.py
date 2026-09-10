@@ -5,6 +5,9 @@ from deepface import DeepFace
 from pathlib import Path
 from typing import List, Tuple, Dict
 import pickle
+import logging
+
+logger = logging.getLogger("face_warrant")
 
 
 class FaceDatabase:
@@ -24,7 +27,7 @@ class FaceDatabase:
                                            model_name=self.model_name,
                                            enforce_detection=False)
             if not embedding:
-                print(f"No face found in {image_path}")
+                logger.debug(f"No face found in {image_path}")
                 return False
 
             encoding = np.array(embedding[0]['embedding'])
@@ -34,7 +37,7 @@ class FaceDatabase:
             self.save_database()
             return True
         except Exception as e:
-            print(f"Error adding face: {e}")
+            logger.debug(f"Error adding face: {e}")
             return False
 
     def add_face_from_array(self, image_array: np.ndarray, name: str, wanted: bool = False) -> bool:
@@ -57,7 +60,7 @@ class FaceDatabase:
             self.save_database()
             return True
         except Exception as e:
-            print(f"Error adding face: {e}")
+            logger.debug(f"Error adding face: {e}")
             return False
 
     def save_database(self):
@@ -78,7 +81,7 @@ class FaceDatabase:
                     self.known_names = data["names"]
                     self.known_wanted = data.get('wanted', [])
             except Exception as e:
-                print(f"Error loading database: {e}")
+                logger.debug(f"Error loading database: {e}")
 
     def get_all_names(self) -> List[str]:
         # Return a list of dicts: {"name": name, "wanted": bool}
